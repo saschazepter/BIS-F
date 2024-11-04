@@ -78,6 +78,13 @@ class UserGdprDataService
                 DB::table('activity_log')->where('causer_type', get_class($data))->where('causer_id', $data->id)->get()
             )
             ->add('permissions.json', $data->permissions()->get()->toJson())
-            ->add('statuses.json', $data->statuses()->with('tags')->get());
+            ->add('statuses.json', $data->statuses()->with('tags')->get())
+            ->add(
+                'reports.json',
+                DB::table('reports')
+                  ->select('subject_type', 'subject_id', 'reason', 'description', 'reporter_id')
+                  ->where('reporter_id', $data->id)
+                  ->get()
+            );
     }
 }
