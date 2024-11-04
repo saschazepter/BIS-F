@@ -12,6 +12,7 @@
 
             <div class="col-md-8">
                 <form method="POST" action="/api/v1/export/statuses">
+                    <input type="hidden" name="frontend" value="1"/>
                     @csrf
                     <div class="card mb-2">
                         <div class="card-body">
@@ -135,6 +136,7 @@
                         <hr/>
 
                         <form method="POST" action="/api/v1/export/statuses">
+                            <input type="hidden" name="frontend" value="1"/>
                             @csrf
                             <div class="row">
                                 <div class="col">
@@ -159,6 +161,40 @@
                                     <button type="submit" class="btn btn-primary" name="filetype" value="json">
                                         <i class="fa-solid fa-download"></i>
                                         {{__('export.generate')}}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <h2 class="fs-5">
+                            <i class="fa-regular fa-file-code"></i>&nbsp;
+                            {{ __('export.gdpr') }}
+                        </h2>
+
+                        {{__('export.gdpr.description')}}
+                        <br>
+                        @php
+                            $recent = auth()->user()->recent_gdpr_export;
+                        @endphp
+
+                        @if($recent)
+                            {{ __('export.gdpr.recent', ['date' => userTime($recent, __('datetime-format'))]) }}
+                        @endif
+
+                        <hr/>
+
+                        <form method="POST" action="/api/v1/export/gdpr">
+                            <input type="hidden" name="frontend" value="1"/>
+                            @csrf
+                            <div class="row pt-2">
+                                <div class="col text-end">
+                                    <button type="submit"
+                                            class="btn btn-primary" @disabled($recent && $recent->diffInDays(now()) < 30)>
+                                        <i class="fa-solid fa-download"></i>
+                                        {{__('export.request')}}
                                     </button>
                                 </div>
                             </div>

@@ -106,6 +106,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['return-json']], static functio
         });
         Route::group(['prefix' => 'export', 'middleware' => 'scope:write-exports'], static function() {
             Route::post('statuses', [ExportController::class, 'generateStatusExport']); //TODO: undocumented endpoint - document when stable
+            Route::post('gdpr', [ExportController::class, 'requestGdprExport']);        //TODO: undocumented endpoint - document when stable
         });
         Route::group(['prefix' => 'user'], static function() {
             Route::group(['middleware' => ['scope:write-follows']], static function() {
@@ -113,9 +114,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['return-json']], static functio
                 Route::delete('/{userId}/follow', [FollowController::class, 'destroyFollow']);
             });
             Route::group(['middleware' => ['scope:write-followers']], static function() {
-                Route::delete('removeFollower', [FollowController::class, 'removeFollower']); // TODO remove after 2024-10
+                Route::delete('removeFollower', [FollowController::class, 'removeFollower']);           // TODO remove after 2024-10
                 Route::delete('rejectFollowRequest', [FollowController::class, 'rejectFollowRequest']); // TODO remove after 2024-10
-                Route::put('approveFollowRequest', [FollowController::class, 'approveFollowRequest']); // TODO remove after 2024-10
+                Route::put('approveFollowRequest', [FollowController::class, 'approveFollowRequest']);  // TODO remove after 2024-10
             });
             Route::group(['middleware' => ['scope:write-blocks']], static function() {
                 Route::post('/{userId}/block', [UserController::class, 'createBlock']);
@@ -160,9 +161,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['return-json']], static functio
                 Route::delete('token', [TokenController::class, 'revokeToken']);            //TODO: undocumented endpoint - document when stable
             });
             Route::group(['middleware' => ['scope:read-settings-followers']], static function() {
-                Route::get('followers', [FollowController::class, 'getFollowers']); // TODO remove after 2024-10
+                Route::get('followers', [FollowController::class, 'getFollowers']);            // TODO remove after 2024-10
                 Route::get('follow-requests', [FollowController::class, 'getFollowRequests']); // TODO remove after 2024-10
-                Route::get('followings', [FollowController::class, 'getFollowings']); // TODO remove after 2024-10
+                Route::get('followings', [FollowController::class, 'getFollowings']);          // TODO remove after 2024-10
             });
         });
         Route::group(['prefix' => 'webhooks'], static function() {

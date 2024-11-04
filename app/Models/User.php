@@ -61,6 +61,9 @@ use Spatie\PersonalDataExport\PersonalDataSelection;
  * @property boolean              muted
  * @property boolean              isAuthUserBlocked
  * @property boolean              isBlockedByAuthUser
+ * @property ?Carbon              recent_gdpr_export
+ * @property Carbon               created_at
+ * @property Carbon               updated_at
  *
  * // relationships
  * @property Collection           trainCheckins
@@ -81,8 +84,6 @@ use Spatie\PersonalDataExport\PersonalDataSelection;
  * @property Collection           statuses
  * @property Collection           trustedUsers
  * @property Collection           trustedByUsers
- * @property Carbon               created_at
- * @property Carbon               updated_at
  *
  *
  * @todo rename home_id to home_station_id
@@ -97,7 +98,7 @@ class User extends Authenticatable implements MustVerifyEmail, ExportsPersonalDa
     protected $fillable = [
         'username', 'name', 'avatar', 'email', 'email_verified_at', 'password', 'home_id', 'privacy_ack_at',
         'default_status_visibility', 'likes_enabled', 'points_enabled', 'private_profile', 'prevent_index',
-        'privacy_hide_days', 'language', 'last_login', 'mapprovider', 'timezone', 'friend_checkin',
+        'privacy_hide_days', 'language', 'last_login', 'mapprovider', 'timezone', 'friend_checkin', 'recent_gdpr_export',
     ];
     protected $hidden   = [
         'password', 'remember_token', 'email', 'email_verified_at', 'privacy_ack_at',
@@ -122,6 +123,7 @@ class User extends Authenticatable implements MustVerifyEmail, ExportsPersonalDa
         'mapprovider'               => MapProvider::class,
         'timezone'                  => 'string',
         'friend_checkin'            => FriendCheckinSetting::class,
+        'recent_gdpr_export'        => 'datetime',
     ];
 
     public function getTrainDistanceAttribute(): float {
