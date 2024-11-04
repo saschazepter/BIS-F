@@ -64,7 +64,6 @@ class UserGdprDataService
             ->add('followings.json', DB::table('follows')->where('follow_id', $data->id)->get())
             ->add('blocks.json', DB::table('user_blocks')->where('user_id', $data->id)->get())
             ->add('mutes.json', DB::table('user_mutes')->where('user_id', $data->id)->get())
-            ->add('muted_by.json', DB::table('user_mutes')->where('muted_id', $data->id)->get())
             ->add('follow_requests.json', DB::table('follow_requests')->where('user_id', $data->id)->get())
             ->add('follows_requests.json', DB::table('follow_requests')->where('follow_id', $data->id)->get())
             ->add('sessions.json', $data->sessions()->get()->toJson())
@@ -84,6 +83,6 @@ class UserGdprDataService
                   ->select('subject_type', 'subject_id', 'reason', 'description', 'reporter_id')
                   ->where('reporter_id', $data->id)
                   ->get()
-            );
+            )->add('trusted_users.json', DB::table('trusted_users')->where('user_id', $data->id)->get());
     }
 }
