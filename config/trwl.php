@@ -12,7 +12,7 @@ return [
     'mastodon_timeout_seconds'  => env("MASTODON_TIMEOUT_SECONDS", 5),
 
     # Brouter
-    'brouter'                  => env('BROUTER', true),
+    'brouter'                   => env('BROUTER', true),
     'brouter_url'               => env('BROUTER_URL', 'https://brouter.de/'),
     'brouter_timeout'           => env('BROUTER_TIMEOUT', 10),
 
@@ -63,4 +63,9 @@ return [
     ],
     'webhooks_active'           => env('WEBHOOKS_ACTIVE', false),
     'webfinger_active'          => env('WEBFINGER_ACTIVE', false),
+
+    # A/B Testing
+    'ab_testing'                => [
+        'gdpr_export' => env('AB_TESTING_GDPR_EXPORT', false),
+    ]
 ];

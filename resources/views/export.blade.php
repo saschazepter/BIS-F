@@ -167,40 +167,43 @@
                         </form>
                     </div>
                 </div>
-                <div class="card mb-2">
-                    <div class="card-body">
-                        <h2 class="fs-5">
-                            <i class="fa-regular fa-file-code"></i>&nbsp;
-                            {{ __('export.gdpr') }}
-                        </h2>
+                @if(config('trwl.ab_testing.gdpr_export') || auth()->user()->hasRole('test-gdpr-export'))
+                    <!-- TODO: Remove this block after the GDPR A/B test is over -->
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h2 class="fs-5">
+                                <i class="fa-regular fa-file-code"></i>&nbsp;
+                                {{ __('export.gdpr') }}
+                            </h2>
 
-                        {{__('export.gdpr.description')}}
-                        <br>
-                        @php
-                            $recent = auth()->user()->recent_gdpr_export;
-                        @endphp
+                            {{__('export.gdpr.description')}}
+                            <br>
+                            @php
+                                $recent = auth()->user()->recent_gdpr_export;
+                            @endphp
 
-                        @if($recent)
-                            {{ __('export.gdpr.recent', ['date' => userTime($recent, __('datetime-format'))]) }}
-                        @endif
+                            @if($recent)
+                                {{ __('export.gdpr.recent', ['date' => userTime($recent, __('datetime-format'))]) }}
+                            @endif
 
-                        <hr/>
+                            <hr/>
 
-                        <form method="POST" action="/api/v1/export/gdpr">
-                            <input type="hidden" name="frontend" value="1"/>
-                            @csrf
-                            <div class="row pt-2">
-                                <div class="col text-end">
-                                    <button type="submit"
-                                            class="btn btn-primary" @disabled($recent && $recent->diffInDays(now()) < 30)>
-                                        <i class="fa-solid fa-download"></i>
-                                        {{__('export.request')}}
-                                    </button>
+                            <form method="POST" action="/api/v1/export/gdpr">
+                                <input type="hidden" name="frontend" value="1"/>
+                                @csrf
+                                <div class="row pt-2">
+                                    <div class="col text-end">
+                                        <button type="submit"
+                                                class="btn btn-primary" @disabled($recent && $recent->diffInDays(now()) < 30)>
+                                            <i class="fa-solid fa-download"></i>
+                                            {{__('export.request')}}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                </div>
+                @endif
             </div>
         </div>
     </div>
