@@ -16,7 +16,7 @@ return [
     /*
      * The amount of days the exports will be available.
      */
-    'delete_after_days'        => 5,
+    'delete_after_days'        => 7,
 
     /*
      * Determines whether the user should be logged in to be able
