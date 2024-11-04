@@ -63,7 +63,6 @@ class UserGdprDataService
             ->add('follows.json', DB::table('follows')->where('user_id', $data->id)->get())
             ->add('followings.json', DB::table('follows')->where('follow_id', $data->id)->get())
             ->add('blocks.json', DB::table('user_blocks')->where('user_id', $data->id)->get())
-            ->add('blocked_by.json', DB::table('user_blocks')->where('blocked_id', $data->id)->get())
             ->add('mutes.json', DB::table('user_mutes')->where('user_id', $data->id)->get())
             ->add('muted_by.json', DB::table('user_mutes')->where('muted_id', $data->id)->get())
             ->add('follow_requests.json', DB::table('follow_requests')->where('user_id', $data->id)->get())
