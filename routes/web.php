@@ -16,18 +16,19 @@ use App\Http\Controllers\Frontend\ChangelogController;
 use App\Http\Controllers\Frontend\DevController;
 use App\Http\Controllers\Frontend\EventController;
 use App\Http\Controllers\Frontend\IcsController;
+use App\Http\Controllers\Frontend\LandingPageController;
 use App\Http\Controllers\Frontend\LeaderboardController;
+use App\Http\Controllers\Frontend\OpenData\WikidataController;
 use App\Http\Controllers\Frontend\SettingsController;
 use App\Http\Controllers\Frontend\Social\MastodonController;
 use App\Http\Controllers\Frontend\Social\SocialController;
 use App\Http\Controllers\Frontend\StatisticController;
 use App\Http\Controllers\Frontend\Stats\DailyStatsController;
-use App\Http\Controllers\Frontend\Support\SupportController;
 use App\Http\Controllers\Frontend\Transport\StatusController;
 use App\Http\Controllers\Frontend\User\ProfilePictureController;
+use App\Http\Controllers\Frontend\VueFrontendController;
 use App\Http\Controllers\Frontend\WebFingerController;
 use App\Http\Controllers\Frontend\WebhookController;
-use App\Http\Controllers\FrontendStaticController;
 use App\Http\Controllers\FrontendStatusController;
 use App\Http\Controllers\FrontendTransportController;
 use App\Http\Controllers\FrontendUserController;
@@ -42,13 +43,11 @@ Route::prefix('admin')->group(base_path('routes/web/admin.php'));
 Route::get('/@{username}/picture', [ProfilePictureController::class, 'generateProfilePicture'])
      ->name('profile.picture');
 
-Route::get('/', [FrontendStaticController::class, 'renderLandingPage'])
+Route::get('/', [LandingPageController::class, 'renderLandingPage'])
      ->name('static.welcome');
 
-Route::view('/about', 'about')->name('static.about');
+Route::permanentRedirect('/about', 'https://help.traewelling.de/faq/');
 
-Route::permanentRedirect('/imprint', '/legal/');
-Route::permanentRedirect('/privacy', '/legal/privacy-policy');
 Route::prefix('legal')->group(function() {
     Route::view('/', 'legal.notice')
          ->name('legal.notice');
@@ -56,7 +55,6 @@ Route::prefix('legal')->group(function() {
          ->name('legal.privacy');
 });
 
-Route::redirect('/profile/{username}', '/@{username}');
 Route::get('/@{username}', [FrontendUserController::class, 'getProfilePage'])
      ->name('profile');
 
@@ -69,7 +67,6 @@ Route::get('/leaderboard/{date}', [LeaderboardController::class, 'renderMonthlyL
 Route::get('/statuses/active', [FrontendStatusController::class, 'getActiveStatuses'])
      ->name('statuses.active');
 
-Route::permanentRedirect('/statuses/event/{slug}', '/event/{slug}');
 Route::get('/event/{slug}', [FrontendStatusController::class, 'statusesByEvent'])
      ->name('event');
 
@@ -87,18 +84,6 @@ Route::get('/callback/mastodon', [MastodonController::class, 'callback']);
 Route::get('/status/{id}', [FrontendStatusController::class, 'getStatus'])
      ->whereNumber('id')
      ->name('status');
-
-Route::prefix('blog')->group(function() {
-    Route::permanentRedirect('/', 'https://blog.traewelling.de')
-         ->name('blog.all');
-
-    Route::permanentRedirect('/{slug}', 'https://blog.traewelling.de/posts/{slug}')
-         ->name('blog.show');
-
-    Route::get('/cat/{category}', function($category) {
-        return redirect('https://blog.traewelling.de/categories/' . strtolower($category), 301);
-    })->name('blog.category');
-});
 
 /**
  * These routes can be used by logged in users although they have not signed the privacy policy yet.
@@ -124,10 +109,12 @@ Route::get('/ics', [IcsController::class, 'renderIcs'])
  */
 Route::middleware(['auth', 'privacy'])->group(function() {
 
-    Route::redirect('/beta/trip-creation', '/trip/create'); //TODO: remove after 2024-06
     Route::view('/trip/create', 'beta.trip-creation')
          ->middleware(['can:create-manual-trip'])
          ->name('trip.create');
+
+    Route::view('/report', 'report')
+         ->name('report');
 
     Route::post('/ics/createToken', [IcsController::class, 'createIcsToken'])
          ->name('ics.createToken'); //TODO: Replace with API Endpoint
@@ -146,8 +133,10 @@ Route::middleware(['auth', 'privacy'])->group(function() {
              ->name('stats.daily');
     });
 
-    Route::get('/support', [SupportController::class, 'renderSupportPage'])->name('support');
-    Route::post('/support/submit', [SupportController::class, 'submit'])->name('support.submit'); //TODO: Replace with API Endpoint
+    Route::prefix('open-data')->group(function() {
+        Route::get('/wikidata', [WikidataController::class, 'indexHelpPage'])
+             ->name('open-data.wikidata');
+    });
 
     Route::prefix('settings')->group(function() {
 
@@ -195,9 +184,6 @@ Route::middleware(['auth', 'privacy'])->group(function() {
         Route::get('/blocks', [SettingsController::class, 'renderBlockedUsers'])->name('settings.blocks');
         Route::get('/mutes', [SettingsController::class, 'renderMutedUsers'])->name('settings.mutes');
 
-        Route::post('/uploadProfileImage', [FrontendUserController::class, 'updateProfilePicture'])
-             ->name('settings.upload-image');
-
         Route::post('/delsession', [UserController::class, 'deleteSession'])
              ->name('delsession'); //TODO: Replace with API Endpoint
         Route::post('/deltoken', [UserController::class, 'deleteToken'])
@@ -229,23 +215,11 @@ Route::middleware(['auth', 'privacy'])->group(function() {
     Route::get('/transport/train/autocomplete/{station}', [FrontendTransportController::class, 'TrainAutocomplete'])
          ->name('transport.train.autocomplete');
 
-    Route::get('/trains/stationboard', [FrontendTransportController::class, 'TrainStationboard'])
-         ->name('trains.stationboard');
+    Route::get('/stationboard', [VueFrontendController::class, 'stationboard'])->name('stationboard');
 
-    Route::get('/trains/nearby', [FrontendTransportController::class, 'StationByCoordinates'])
-         ->name('trains.nearby');
+    Route::redirect('/trains/stationboard', '/stationboard')->name('trains.stationboard');
 
-    Route::get('/trains/trip', [FrontendTransportController::class, 'TrainTrip'])
-         ->name('trains.trip');
-
-    Route::post('/trains/checkin', [FrontendTransportController::class, 'TrainCheckin'])
-         ->name('trains.checkin'); //TODO: Replace with API Endpoint
-
-    Route::get('/trains/setHome/', [FrontendTransportController::class, 'setTrainHome'])
-         ->name('user.setHome'); //TODO: Replace with API Endpoint // why is this a GET request?
-
-    Route::get('/search/', [FrontendUserController::class, 'searchUser'])
-         ->name('userSearch');
+    Route::get('/search/', [FrontendUserController::class, 'searchUser'])->name('userSearch');
 
     Route::post('/user/block', [\App\Http\Controllers\Frontend\UserController::class, 'blockUser'])
          ->name('user.block'); //TODO: Replace with API Endpoint

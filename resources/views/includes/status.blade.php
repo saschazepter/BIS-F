@@ -1,8 +1,12 @@
 @php
     use App\Enum\Business;
+    use App\Enum\HafasTravelType;
+    use App\Http\Controllers\Backend\Helper\StatusHelper;
     use App\Http\Controllers\Backend\Transport\StationController;
+    use App\Http\Controllers\Backend\Transport\StatusController;
     use App\Http\Controllers\Backend\User\ProfilePictureController;
 @endphp
+@php /** @var App\Models\Status $status */ @endphp
 <div class="card status mb-3" id="status-{{ $status->id }}"
      data-trwl-id="{{$status->id}}"
      data-date="{{userTime($status->checkin->departure, __('dateformat.with-weekday'))}}"
@@ -58,20 +62,31 @@
                         </span>
                     </span>
 
-                    <a href="{{route('trains.stationboard', ['provider' => 'train', 'station' => $status->checkin->originStation->ibnr])}}"
+                    <a href="{{route('stationboard', [
+                        'stationId' => $status->checkin->originStopover->station->id,
+                        'stationName' => $status->checkin->originStopover->station->name,
+                    ])}}"
                        class="text-trwl clearfix">
-                        {{$status->checkin->originStation->name}}
+                        @if(auth()->user()?->hasRole('open-beta'))
+                            {{$status->checkin->originStopover->station->localized_name}}
+                        @else
+                            {{$status->checkin->originStopover->station->name}}
+                        @endif
                     </a>
 
                     <p class="train-status text-muted">
                         <span>
-                            @if (file_exists(public_path('img/' . $status->checkin->trip->category->value . '.svg')))
+                            @if(file_exists(public_path('img/' . $status->checkin->trip->category->value . '.svg')))
                                 <img class="product-icon"
                                      src="{{ asset('img/' . $status->checkin->trip->category->value . '.svg') }}"
                                      alt="{{$status->checkin->trip->category->value}}"
                                 />
-                            @elseif($status->checkin->trip->category->value == 'taxi')
+                            @elseif($status->checkin->trip->category === HafasTravelType::PLANE)
+                                <i class="fa fa-plane d-inline" aria-hidden="true"></i>
+                            @elseif($status->checkin->trip->category === HafasTravelType::TAXI)
                                 <i class="fa fa-taxi d-inline" aria-hidden="true"></i>
+                            @elseif($status->checkin->trip->category === HafasTravelType::FERRY)
+                                <i class="fa fa-ship d-inline" aria-hidden="true"></i>
                             @else
                                 <i class="fa fa-train d-inline" aria-hidden="true"></i>
                             @endif
@@ -117,7 +132,7 @@
 
                     @if(!empty($status->body))
                         <p class="status-body"><i class="fas fa-quote-right" aria-hidden="true"></i>
-                            {!! \App\Http\Controllers\Backend\Transport\StatusController::getPrintableEscapedBody($status) !!}
+                            {!! StatusController::getPrintableEscapedBody($status) !!}
                         </p>
                     @endif
 
@@ -126,11 +141,18 @@
                             {{ __('stationboard.next-stop') }}
 
                             @php
-                                $nextStation = \App\Http\Controllers\Backend\Transport\StatusController::getNextStationForStatus($status);
+                                $nextStation = StatusController::getNextStationForStatus($status);
                             @endphp
-                            <a href="{{route('trains.stationboard', ['provider' => 'train', 'station' => $nextStation?->ibnr])}}"
+                            <a href="{{route('stationboard', [
+                                'stationId' => $nextStation?->id,
+                                'stationName' => $nextStation?->name
+                            ])}}"
                                class="text-trwl clearfix">
-                                {{$nextStation?->name}}
+                                @if(auth()->user()?->hasRole('open-beta'))
+                                    {{$nextStation?->localized_name}}
+                                @else
+                                    {{$nextStation?->name}}
+                                @endif
                             </a>
                         </p>
                     @endif
@@ -149,9 +171,16 @@
                             {{ userTime($display_arrival->time) }}
                         </span>
                     </span>
-                    <a href="{{route('trains.stationboard', ['provider' => 'train', 'station' => $status->checkin->destinationStation->ibnr])}}"
+                    <a href="{{route('stationboard', [
+                        'stationId' => $status->checkin->destinationStopover->station->id,
+                        'stationName' => $status->checkin->destinationStopover->station->name
+                    ])}}"
                        class="text-trwl clearfix">
-                        {{$status->checkin->destinationStation->name}}
+                        @if(auth()->user()?->hasRole('open-beta'))
+                            {{$status->checkin->destinationStopover->station->localized_name}}
+                        @else
+                            {{$status->checkin->destinationStopover->station->name}}
+                        @endif
                     </a>
                 </li>
             </ul>
@@ -200,7 +229,7 @@
                                     type="button"
                                     data-trwl-share-url="{{ route('status', ['id' => $status->id]) }}"
                                     @if(auth()->user() && $status->user_id == auth()->user()->id)
-                                        data-trwl-share-text="{{ \App\Http\Controllers\Backend\Helper\StatusHelper::getSocialText($status) }}"
+                                        data-trwl-share-text="{{StatusHelper::getSocialText($status) }}"
                                     @else
                                         data-trwl-share-text="{{ $status->description }}"
                                 @endif
@@ -235,24 +264,31 @@
                                 </li>
                             @else
                                 <li>
-                                    <button type="button" class="dropdown-item join"
-                                            data-trwl-linename="{{$status->checkin->trip->linename}}"
-                                            data-trwl-stop-name="{{$status->checkin->destinationStation->name}}"
-                                            data-trwl-trip-id="{{$status->checkin->trip_id}}"
-                                            data-trwl-destination="{{$status->checkin->destination}}"
-                                            data-trwl-arrival="{{$status->checkin->arrival}}"
-                                            data-trwl-start="{{$status->checkin->origin}}"
-                                            data-trwl-departure="{{$status->checkin->departure}}"
-                                            data-trwl-event-id="{{$status->event?->id}}"
-                                    >
+                                    <a href="{{ route('stationboard', [
+                                            'tripId' => $status->checkin->trip->id,
+                                            'lineName' => $status->checkin->trip->linename,
+                                            'start' => $status->checkin->originStopover->station->id,
+                                            'destination' => $status->checkin->destinationStopover->station->id,
+                                            'departure' => $status->checkin->originStopover->departure_planned->toIso8601String(),
+                                            'idType' => 'trwl'
+                                        ]) }}" class="dropdown-item">
                                         <div class="dropdown-icon-suspense">
                                             <i class="fas fa-user-plus" aria-hidden="true"></i>
                                         </div>
                                         {{__('status.join')}}
-                                    </button>
+                                    </a>
                                 </li>
                                 <x-mute-button :user="$status->user" :dropdown="true"/>
                                 <x-block-button :user="$status->user" :dropdown="true"/>
+                                <li>
+                                    <a href="{{ route('report', ['subjectType' => 'Status', 'subjectId' => $status->id]) }}"
+                                       class="dropdown-item">
+                                        <div class="dropdown-icon-suspense">
+                                            <i class="fas fa-flag" aria-hidden="true"></i>
+                                        </div>
+                                        {{__('status.report')}}
+                                    </a>
+                                </li>
                             @endif
                             @admin
                             <li>

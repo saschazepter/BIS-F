@@ -178,7 +178,7 @@ abstract class HafasController extends Controller
             'duration'                   => $duration,
             HTT::NATIONAL_EXPRESS->value => self::checkTravelType($type, TravelType::EXPRESS),
             HTT::NATIONAL->value         => self::checkTravelType($type, TravelType::EXPRESS),
-            HTT::REGIONAL_EXP->value     => self::checkTravelType($type, TravelType::REGIONAL),
+            HTT::REGIONAL_EXP->value     => self::checkTravelType($type, TravelType::EXPRESS),
             HTT::REGIONAL->value         => self::checkTravelType($type, TravelType::REGIONAL),
             HTT::SUBURBAN->value         => self::checkTravelType($type, TravelType::SUBURBAN),
             HTT::BUS->value              => self::checkTravelType($type, TravelType::BUS),
@@ -342,25 +342,10 @@ abstract class HafasController extends Controller
     }
 
     /**
-     * @param string $tripID
-     * @param string $lineName
-     *
-     * @return Trip
-     * @throws HafasException
-     */
-    public static function getHafasTrip(string $tripID, string $lineName): Trip {
-        if (is_numeric($tripID)) {
-            $trip = Trip::where('id', $tripID)->where('linename', $lineName)->first();
-        }
-        $trip = $trip ?? Trip::where('trip_id', $tripID)->where('linename', $lineName)->first();
-        return $trip ?? self::fetchHafasTrip($tripID, $lineName);
-    }
-
-    /**
      * @throws HafasException|JsonException
      */
     public static function fetchRawHafasTrip(string $tripId, string $lineName) {
-        $tripResponse = self::getHttpClient()->get("trips/$tripId", [
+        $tripResponse = self::getHttpClient()->get("trips/" . rawurlencode($tripId), [
             'lineName'  => $lineName,
             'polyline'  => 'true',
             'stopovers' => 'true'
@@ -371,6 +356,7 @@ abstract class HafasController extends Controller
         }
         //sometimes HAFAS returnes 502 Bad Gateway
         if ($tripResponse->status() === 502) {
+            Log::error('Cannot fetch trip with id: ' . $tripId);
             throw new HafasException(__('messages.exception.hafas.502'));
         }
         Log::error('Unknown HAFAS Error (fetchRawHafasTrip)', [
@@ -385,7 +371,7 @@ abstract class HafasController extends Controller
      * @param string $lineName
      *
      * @return Trip
-     * @throws HafasException
+     * @throws HafasException|JsonException
      */
     public static function fetchHafasTrip(string $tripID, string $lineName): Trip {
         $tripJson    = self::fetchRawHafasTrip($tripID, $lineName);
@@ -419,8 +405,8 @@ abstract class HafasController extends Controller
                                          'linename'       => $tripJson->line->name,
                                          'journey_number' => $tripJson->line?->fahrtNr === "0" ? null : $tripJson->line?->fahrtNr,
                                          'operator_id'    => $operator?->id,
-                                         'origin'         => $origin->ibnr,
-                                         'destination'    => $destination->ibnr,
+                                         'origin_id'      => $origin->id,
+                                         'destination_id' => $destination->id,
                                          'polyline_id'    => $polyline->id,
                                          'departure'      => $tripJson->plannedDeparture,
                                          'arrival'        => $tripJson->plannedArrival,
@@ -493,7 +479,7 @@ abstract class HafasController extends Controller
 
     public static function refreshStopovers(stdClass $rawHafas): stdClass {
         $stopoversUpdated = 0;
-        $payloadArrival = [];
+        $payloadArrival   = [];
         $payloadDeparture = [];
         $payloadCancelled = [];
         foreach ($rawHafas->stopovers ?? [] as $stopover) {
@@ -501,8 +487,8 @@ abstract class HafasController extends Controller
                 continue; // No realtime data present for this stopover, keep existing data
             }
 
-            $stop = self::parseHafasStopObject($stopover->stop);
-            $arrivalPlanned = Carbon::parse($stopover->plannedArrival)->tz(config('app.timezone'));
+            $stop             = self::parseHafasStopObject($stopover->stop);
+            $arrivalPlanned   = Carbon::parse($stopover->plannedArrival)->tz(config('app.timezone'));
             $departurePlanned = Carbon::parse($stopover->plannedDeparture)->tz(config('app.timezone'));
 
             $basePayload = [
@@ -513,19 +499,19 @@ abstract class HafasController extends Controller
             ];
 
             if (isset($stopover->arrivalDelay) && isset($stopover->arrival)) {
-                $arrivalReal = Carbon::parse($stopover->arrival)->tz(config('app.timezone'));
-                $payloadArrival[] = array_merge($basePayload, [ 'arrival_real' => $arrivalReal ]);
+                $arrivalReal      = Carbon::parse($stopover->arrival)->tz(config('app.timezone'));
+                $payloadArrival[] = array_merge($basePayload, ['arrival_real' => $arrivalReal]);
             }
 
             if (isset($stopover->departureDelay) && isset($stopover->departure)) {
-                $departureReal = Carbon::parse($stopover->departure)->tz(config('app.timezone'));
-                $payloadDeparture[] = array_merge($basePayload, [ 'departure_real' => $departureReal ]);
+                $departureReal      = Carbon::parse($stopover->departure)->tz(config('app.timezone'));
+                $payloadDeparture[] = array_merge($basePayload, ['departure_real' => $departureReal]);
             }
 
             // In case of cancellation, arrivalDelay/departureDelay will be null while the cancelled attribute will be present and true
             // If cancelled is false / missing while other RT data is present (see initial if expression), it will be upserted to false
             // This behavior is required for potential withdrawn cancellations
-            $payloadCancelled[] = array_merge($basePayload, [ 'cancelled' => $stopover->cancelled ?? false ]);
+            $payloadCancelled[] = array_merge($basePayload, ['cancelled' => $stopover->cancelled ?? false]);
 
             $stopoversUpdated++;
         }
@@ -534,8 +520,8 @@ abstract class HafasController extends Controller
 
         return (object) [
             "stopovers" => $stopoversUpdated,
-            "rows" => [
-                "arrival" => Stopover::upsert($payloadArrival, $key, ['arrival_real']),
+            "rows"      => [
+                "arrival"   => Stopover::upsert($payloadArrival, $key, ['arrival_real']),
                 "departure" => Stopover::upsert($payloadDeparture, $key, ['departure_real']),
                 "cancelled" => Stopover::upsert($payloadCancelled, $key, ['cancelled'])
             ]

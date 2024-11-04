@@ -38,6 +38,8 @@ Route::middleware(['auth', 'permission:view-backend'])->group(function() {
                  ->name('admin.users');
             Route::get('/{id}', [UserController::class, 'renderUser'])
                  ->name('admin.users.user');
+            Route::post('/', [UserController::class, 'updateRoles'])
+                 ->name('admin.users.update-roles');
             Route::post('/update-mail', [UserController::class, 'updateMail'])
                  ->name('admin.users.update-mail');
         });
@@ -52,6 +54,7 @@ Route::middleware(['auth', 'permission:view-backend'])->group(function() {
 
         Route::prefix('trip')->group(function() {
             Route::get('/{id}', [TripController::class, 'renderTrip'])
+                 ->whereNumber('id')
                  ->name('admin.trip.show');
         });
 
@@ -61,6 +64,9 @@ Route::middleware(['auth', 'permission:view-backend'])->group(function() {
 
             Route::get('/{id}', [StationController::class, 'renderStation'])
                  ->name('admin.station');
+
+            Route::post('/wikidata/import', [StationController::class, 'importWikidata'])->name('backend.status.import.wikidata'); //TODO: Make this an API endpoint when it is accessible for users too
+            Route::post('/{id}/wikidata', [StationController::class, 'fetchWikidata']);
         });
 
 

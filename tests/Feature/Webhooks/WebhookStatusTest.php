@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Webhooks;
 
+use App\Dto\Internal\CheckInRequestDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
 use App\Enum\WebhookEvent;
@@ -15,14 +16,14 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
-use Tests\TestCase;
+use Tests\FeatureTestCase;
 use function PHPUnit\Framework\assertEquals;
 
-class WebhookStatusTest extends TestCase
+class WebhookStatusTest extends FeatureTestCase
 {
     use RefreshDatabase;
 
-    public function testWebhookSendingOnStatusCreation() {
+    public function testWebhookSendingOnStatusCreation(): void {
         Bus::fake();
 
         $user   = User::factory()->create();
@@ -201,17 +202,17 @@ class WebhookStatusTest extends TestCase
         $origin      = HafasController::getStation(self::FRANKFURT_HBF['id']);
         $destination = HafasController::getStation(self::HANNOVER_HBF['id']);
 
-        $checkin = TrainCheckinController::checkin(
-            user:         $user,
-            trip:         $trip,
-            origin:       $origin,
-            departure:    Carbon::parse(self::DEPARTURE_TIME),
-            destination:  $destination,
-            arrival:      Carbon::parse(self::ARRIVAL_TIME),
-            travelReason: Business::PRIVATE,
-            visibility:   StatusVisibility::PUBLIC,
-            body:         self::EXAMPLE_BODY
-        );
-        return $checkin['status'];
+        $dto = new CheckInRequestDto();
+        $dto->setUser($user)
+            ->setTrip($trip)
+            ->setOrigin($origin)
+            ->setDeparture(Carbon::parse(self::DEPARTURE_TIME))
+            ->setDestination($destination)
+            ->setArrival(Carbon::parse(self::ARRIVAL_TIME))
+            ->setTravelReason(Business::PRIVATE)
+            ->setStatusVisibility(StatusVisibility::PUBLIC)
+            ->setBody(self::EXAMPLE_BODY);
+        $checkin = TrainCheckinController::checkin($dto);
+        return $checkin->status;
     }
 }

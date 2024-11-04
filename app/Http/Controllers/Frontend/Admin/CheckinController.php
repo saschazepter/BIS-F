@@ -9,14 +9,14 @@ use App\Exceptions\CheckInCollisionException;
 use App\Exceptions\HafasException;
 use App\Exceptions\StationNotOnTripException;
 use App\Exceptions\TrainCheckinAlreadyExistException;
-use App\Http\Controllers\Backend\EventController as EventBackend;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\HafasController;
 use App\Http\Controllers\TransportController as TransportBackend;
+use App\Hydrators\CheckinRequestHydrator;
 use App\Jobs\PostStatusOnMastodon;
 use App\Models\Event;
-use App\Models\Status;
 use App\Models\Station;
+use App\Models\Status;
 use App\Models\Stopover;
 use App\Models\User;
 use Carbon\Carbon;
@@ -26,7 +26,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\View\View;
-use Intervention\Image\Exception\NotFoundException;
 use Throwable;
 
 class CheckinController
@@ -88,7 +87,7 @@ class CheckinController
     public function renderTrip(string $tripId, Request $request): RedirectResponse|View {
         $validated = $request->validate([
                                             'lineName'  => ['required'],
-                                            'startIBNR' => ['required', 'numeric'],
+                                            'start'     => ['required', 'numeric'],
                                             'departure' => ['required', 'date'],
                                             'userId'    => ['nullable', 'numeric']
                                         ]);
@@ -102,11 +101,11 @@ class CheckinController
             $hafasTrip = TrainCheckinController::getHafasTrip(
                 tripId:   $tripId,
                 lineName: $validated['lineName'],
-                startId:  $validated['startIBNR'],
+                startId:  $validated['start'],
             );
             return view('admin.checkin.trip', [
                 'hafasTrip' => $hafasTrip,
-                'events'    => EventBackend::activeEvents(),
+                'events'    => Event::forTimestamp(now())->get(),
                 'stopovers' => $hafasTrip->stopovers,
                 'user'      => $user,
             ]);
@@ -124,48 +123,28 @@ class CheckinController
                                             'visibility'          => ['nullable', new Enum(StatusVisibility::class)],
                                             'eventId'             => ['nullable', 'integer', 'exists:events,id'],
                                             'toot'                => ['nullable', 'max:2'],
-                                            'shouldChain_check'   => ['nullable', 'max:2'],
+                                            'chainPost'           => ['nullable', 'max:2'],
                                             'tripId'              => ['required'],
                                             'lineName'            => ['required'],
-                                            'startIBNR'           => ['required', 'numeric'],
+                                            'start'               => ['required', 'numeric'],
                                             'destinationStopover' => ['required', 'exists:train_stopovers,id'],
                                             'departure'           => ['required', 'date'],
                                             'force'               => ['nullable', 'max:2'],
-                                            'userId'              => ['required', 'integer']
+                                            'userId'              => ['required', 'integer'],
+                                            'ibnr'                => ['nullable', 'max:2'],
                                         ]);
         try {
             $user = User::findOrFail($validated['userId']);
-        } catch (NotFoundException) {
+        } catch (ModelNotFoundException) {
             return redirect()->back()->withErrors('User non-existent');
         }
 
-        $destinationStopover = Stopover::findOrFail($validated['destinationStopover']);
-
         try {
-            $backendResponse = TrainCheckinController::checkin(
-                user:         $user,
-                trip:         HafasController::getHafasTrip($validated['tripId'], $validated['lineName']),
-                origin:       Station::where('ibnr', $validated['startIBNR'])->first(),
-                departure:    Carbon::parse($validated['departure']),
-                destination:  $destinationStopover->station,
-                arrival:      $destinationStopover->arrival_planned,
-                travelReason: Business::tryFrom($validated['business'] ?? 0),
-                visibility:   StatusVisibility::tryFrom($validated['visibility'] ?? 0),
-                body:         $validated['body'] ?? null,
-                event:        isset($validated['eventId']) ? Event::find($validated['eventId']) : null,
-                force: isset($validated['force']),
-                postOnMastodon: isset($request->toot_check),
-                shouldChain: isset($request->shouldChain_check)
-            );
-
-            $status = $backendResponse['status'];
-
-            PostStatusOnMastodon::dispatchIf(isset($validated['toot'])
-                                             && $user?->socialProfile?->mastodon_id !== null,
-                                             $status);
+            $dto             = (new CheckinRequestHydrator($validated, $user))->hydrateFromAdmin();
+            $backendResponse = TrainCheckinController::checkin($dto);
 
             return redirect()->route('admin.stationboard')
-                             ->with('alert-success', 'Checked in successfully. Earned points: ' . $backendResponse['points']->points);
+                             ->with('alert-success', 'Checked in successfully. Earned points: ' . $backendResponse->pointCalculation->points);
 
         } catch (CheckInCollisionException $e) {
             return redirect()
@@ -173,12 +152,12 @@ class CheckinController
                 ->withErrors(__(
                                  'controller.transport.overlapping-checkin',
                                  [
-                                     'linename' => $e->getCollision()->trip->linename
+                                     'linename' => $e->checkin->trip->linename
                                  ]
                              ) . strtr(' <a href=":url">#:id</a>',
                                        [
-                                           ':url' => url('/status/' . $e->getCollision()->status->id),
-                                           ':id'  => $e->getCollision()->status->id,
+                                           ':url' => url('/status/' . $e->checkin->status->id),
+                                           ':id'  => $e->checkin->status->id,
                                        ]
                              ));
 

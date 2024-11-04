@@ -3,23 +3,24 @@
 namespace Tests\Feature\APIv1;
 
 use App\Enum\StatusVisibility;
-use Laravel\Passport\Passport;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\Backend\User\FollowController as FollowBackend;
 use App\Http\Controllers\Backend\UserController as BackendUserController;
 use App\Http\Controllers\StatusController as StatusBackend;
 use App\Http\Controllers\UserController as UserBackend;
+use App\Models\Checkin;
 use App\Models\Event;
 use App\Models\EventSuggestion;
 use App\Models\Follow;
-use App\Models\Checkin;
 use App\Models\User;
 use App\Notifications\EventSuggestionProcessed;
 use App\Notifications\UserFollowed;
 use App\Notifications\UserJoinedConnection;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Passport\Passport;
 use Tests\ApiTestCase;
+use Tests\Helpers\CheckinRequestTestHydrator;
 
 class NotificationsTest extends ApiTestCase
 {
@@ -188,15 +189,8 @@ class NotificationsTest extends ApiTestCase
         $this->assertDatabaseCount('notifications', 0);
 
         //bob also checks into the train (with same origin and destination - but not relevant)
-        $bobsData  = TrainCheckinController::checkin(
-            user:        $bob,
-            trip:        $aliceCheckIn->trip,
-            origin:      $aliceCheckIn->originStation,
-            departure:   $aliceCheckIn->departure,
-            destination: $aliceCheckIn->destinationStation,
-            arrival:     $aliceCheckIn->arrival,
-        );
-        $bobStatus = $bobsData['status'];
+        $bobsData  = TrainCheckinController::checkin((new CheckinRequestTestHydrator($bob))->hydrateFromCheckin($aliceCheckIn));
+        $bobStatus = $bobsData->status;
 
         //Check if there is one notification
         $this->assertDatabaseCount('notifications', 1);
@@ -227,15 +221,9 @@ class NotificationsTest extends ApiTestCase
 
         // WHEN: Bob also checks into the train (with same origin and destination - but not relevant)
         $bob = User::factory(['privacy_ack_at' => Carbon::now()])->create();
-        TrainCheckinController::checkin(
-            user:        $bob,
-            trip:        $aliceCheckIn->trip,
-            origin:      $aliceCheckIn->originStation,
-            departure:   $aliceCheckIn->departure,
-            destination: $aliceCheckIn->destinationStation,
-            arrival:     $aliceCheckIn->arrival,
-            visibility:  StatusVisibility::PRIVATE // <-- important in this test
-        );
+        $dto = (new CheckinRequestTestHydrator($bob))->hydrateFromCheckin($aliceCheckIn);
+        $dto->setStatusVisibility(StatusVisibility::PRIVATE);
+        TrainCheckinController::checkin($dto);
 
         //Check if there are no notifications
         $this->assertDatabaseCount('notifications', 0);
@@ -304,7 +292,7 @@ class NotificationsTest extends ApiTestCase
                                        'event_end'    => $eventSuggestion->end
                                    ]
                          );
-        $response->assertRedirectToRoute('admin.events');
+        $response->assertRedirectToRoute('admin.events.suggestions');
 
         //save event for later
         $event = Event::first();
@@ -321,11 +309,11 @@ class NotificationsTest extends ApiTestCase
                                           'data' => [
                                               'accepted'        => true,
                                               'event'           => [
-                                                  'id'    => $event->id,
-                                                  'slug'  => $event->slug,
-                                                  'name'  => $event->name,
-                                                  'begin' => $event->begin,
-                                                  'end'   => $event->end,
+                                                  'id'            => $event->id,
+                                                  'slug'          => $event->slug,
+                                                  'name'          => $event->name,
+                                                  'checkin_start' => $event->checkin_start,
+                                                  'checkin_end'   => $event->checkin_end,
                                               ],
                                               'suggestedName'   => $eventSuggestion->name,
                                               'rejectionReason' => null

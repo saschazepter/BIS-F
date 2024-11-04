@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Events\StatusDeleteEvent;
 use App\Events\StatusUpdateEvent;
 use App\Events\UserCheckedIn;
 use App\Jobs\PostStatusOnMastodon;
@@ -11,17 +10,20 @@ use App\Listeners\NotificationSentWebhookListener;
 use App\Listeners\RemoveAbsentWebhooksListener;
 use App\Listeners\StatusCreateCheckPolylineListener;
 use App\Listeners\StatusCreateWebhookListener;
-use App\Listeners\StatusDeleteWebhookListener;
 use App\Listeners\StatusUpdateWebhookListener;
+use App\Models\Checkin;
 use App\Models\Follow;
 use App\Models\Like;
+use App\Models\Report;
 use App\Models\Status;
-use App\Models\Checkin;
+use App\Models\Trip;
 use App\Models\User;
 use App\Observers\CheckinObserver;
 use App\Observers\FollowObserver;
 use App\Observers\LikeObserver;
+use App\Observers\ReportObserver;
 use App\Observers\StatusObserver;
+use App\Observers\TripObserver;
 use App\Observers\UserObserver;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Cache\Events\CacheMissed;
@@ -49,9 +51,6 @@ class EventServiceProvider extends ServiceProvider
         StatusUpdateEvent::class      => [
             StatusUpdateWebhookListener::class
         ],
-        StatusDeleteEvent::class      => [
-            StatusDeleteWebhookListener::class
-        ],
         NotificationSent::class       => [
             NotificationSentWebhookListener::class
         ],
@@ -64,10 +63,12 @@ class EventServiceProvider extends ServiceProvider
     ];
 
     protected $observers = [
+        Checkin::class => [CheckinObserver::class],
         Follow::class  => [FollowObserver::class],
         Like::class    => [LikeObserver::class],
+        Report::class  => [ReportObserver::class],
         Status::class  => [StatusObserver::class],
-        Checkin::class => [CheckinObserver::class],
+        Trip::class    => [TripObserver::class],
         User::class    => [UserObserver::class],
     ];
 

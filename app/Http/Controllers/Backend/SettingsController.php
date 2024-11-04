@@ -8,13 +8,13 @@ use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
-use Intervention\Image\ImageManager as Image;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager as Image;
 
 abstract class SettingsController extends Controller
 {
-    /** @throws RateLimitExceededException
-     * @todo Implement privacy_hide_days
+    /**
+     * @throws RateLimitExceededException if the user has exceeded the rate limit for sending verification emails
      */
     public static function updateSettings(array $fields, User $user = null): Authenticatable|null|User {
         if ($user === null) {
@@ -27,9 +27,28 @@ abstract class SettingsController extends Controller
             $user->sendEmailVerificationNotification();
         }
 
+        // map api fields to model fields for update
+        $mappings = [
+            'displayName'             => 'name',
+            'friendCheckin'           => 'friend_checkin',
+            'privateProfile'          => 'private_profile',
+            'likesEnabled'            => 'likes_enabled',
+            'pointsEnabled'           => 'points_enabled',
+            'preventIndex'            => 'prevent_index',
+            'privacyHideDays'         => 'privacy_hide_days',
+            'defaultStatusVisibility' => 'default_status_visibility',
+            'mapProvider'             => 'mapprovider',
+        ];
+        foreach ($mappings as $apiField => $modelField) {
+            if (array_key_exists($apiField, $fields)) {
+                $fields[$modelField] = $fields[$apiField];
+                unset($fields[$apiField]);
+            }
+        }
+
         $user->update($fields);
 
-        if (in_array('mastodonVisibility', $fields, true)) {
+        if (array_key_exists('mastodonVisibility', $fields)) {
             $user->socialProfile->update(['mastodon_visibility' => $fields['mastodonVisibility']]);
         }
 
@@ -49,8 +68,9 @@ abstract class SettingsController extends Controller
         $filename = strtr(':userId_:time.png', [':userId' => Auth::user()->id, ':time' => time()]);
 
 
-        (new Image(new Driver()))->read($avatar)->resize(300, 300)
-             ->save(public_path('/uploads/avatars/' . $filename));
+        (new Image(new Driver()))->read($avatar)
+                                 ->resize(400, 400)
+                                 ->save(public_path('/uploads/avatars/' . $filename));
 
         if (auth()->user()->avatar) {
             File::delete(public_path('/uploads/avatars/' . auth()->user()->avatar));

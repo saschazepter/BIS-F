@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
-use App\Events\StatusDeleteEvent;
 use App\Events\StatusUpdateEvent;
-use App\Exceptions\PermissionException;
 use App\Exceptions\StatusAlreadyLikedException;
 use App\Http\Controllers\API\v1\Controller as APIController;
 use App\Http\Controllers\Backend\Support\LocationController;
@@ -16,6 +14,8 @@ use App\Models\Status;
 use App\Models\User;
 use App\Notifications\StatusLiked;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -44,9 +44,15 @@ class StatusController extends Controller
     public static function getStatus(int $statusId): Status {
         return Status::where('id', $statusId)
                      ->with([
-                                'event', 'likes', 'user.blockedByUsers', 'user.blockedUsers', 'checkin',
-                                'checkin.originStation', 'checkin.destinationStation',
-                                'checkin.Trip.stopovers.station',
+                                'event',
+                                'likes',
+                                'user.blockedByUsers',
+                                'user.blockedUsers',
+                                'checkin',
+                                'tags',
+                                'checkin.originStopover.station.names',
+                                'checkin.destinationStopover.station.names',
+                                'checkin.trip.stopovers.station.names',
                             ])
                      ->firstOrFail();
     }
@@ -60,10 +66,16 @@ class StatusController extends Controller
      */
     public static function getActiveStatuses(): ?Collection {
         return Status::with([
-                                'event', 'likes', 'user.blockedByUsers', 'user.blockedUsers', 'user.followers',
-                                'checkin.originStation', 'checkin.destinationStation',
-                                'checkin.trip.stopovers.station',
+                                'event',
+                                'likes',
+                                'user.blockedByUsers',
+                                'user.blockedUsers',
+                                'user.followers',
+                                'checkin.originStopover.station.names',
+                                'checkin.destinationStopover.station.names',
+                                'checkin.trip.stopovers.station.names',
                                 'checkin.trip.polyline',
+                                'tags',
                             ])
                      ->whereHas('checkin', function($query) {
                          $query->where('departure', '<', now())
@@ -71,7 +83,7 @@ class StatusController extends Controller
                      })
                      ->get()
                      ->filter(function(Status $status) {
-                         return Gate::allows('view', $status) && !$status->user->shadow_banned && $status->visibility !== StatusVisibility::UNLISTED;
+                         return Gate::allows('view', $status) && $status->visibility !== StatusVisibility::UNLISTED;
                      })
                      ->sortByDesc(function(Status $status) {
                          return $status->checkin->departure;
@@ -95,15 +107,18 @@ class StatusController extends Controller
         $ids = explode(',', $ids);
 
         $statuses = Status::with([
-                                     'user.blockedByUsers', 'user.blockedUsers', 'user.followers',
-                                     'checkin.originStation', 'checkin.destinationStation',
-                                     'checkin.Trip.stopovers.station',
-                                     'checkin.Trip.polyline',
+                                     'user.blockedByUsers',
+                                     'user.blockedUsers',
+                                     'user.followers',
+                                     'checkin.originStopover.station.names',
+                                     'checkin.destinationStopover.station.names',
+                                     'checkin.trip.stopovers.station.names',
+                                     'checkin.trip.polyline',
                                  ])
                           ->whereIn('id', $ids)
                           ->get()
                           ->filter(function(Status $status) {
-                              return Gate::allows('view', $status) && !$status->user->shadow_banned && $status->visibility !== StatusVisibility::UNLISTED;
+                              return Gate::allows('view', $status) && $status->visibility !== StatusVisibility::UNLISTED;
                           })
                           ->values();
 
@@ -123,21 +138,13 @@ class StatusController extends Controller
      * @param int  $statusId
      *
      * @return bool|null
-     * @throws PermissionException|ModelNotFoundException
+     * @throws ModelNotFoundException
+     * @throws AuthorizationException User is not allowed to delete this status
      */
     public static function DeleteStatus(User $user, int $statusId): ?bool {
-        $status = Status::find($statusId);
-
-        if ($status === null) {
-            throw new ModelNotFoundException();
-        }
-        if ($user->id != $status->user->id) {
-            throw new PermissionException();
-        }
+        $status = Status::findOrFail($statusId); // throws ModelNotFoundException
+        Gate::forUser($user)->authorize('delete', $status);
         $status->delete();
-
-        StatusDeleteEvent::dispatch($status);
-
         return true;
     }
 
@@ -148,12 +155,11 @@ class StatusController extends Controller
      * @param Status $status
      *
      * @return Like
-     * @throws StatusAlreadyLikedException|PermissionException
+     * @throws StatusAlreadyLikedException
+     * @throws AuthorizationException User is not allowed to like this status
      */
     public static function createLike(User $user, Status $status): Like {
-        if ($user->cannot('like', $status)) {
-            throw new PermissionException();
-        }
+        Gate::forUser($user)->authorize('like', $status);
 
         if ($status->likes->contains('user_id', $user->id)) {
             throw new StatusAlreadyLikedException($user, $status);
@@ -161,7 +167,7 @@ class StatusController extends Controller
 
         $like = Like::create([
                                  'user_id'   => $user->id,
-                                 'status_id' => $status->id
+                                 'status_id' => $status->id,
                              ]);
 
         if (!$status->user->mutedUsers->contains('id', $user->id)) {
@@ -204,8 +210,8 @@ class StatusController extends Controller
     public static function getStatusesByEvent(Event $event): array {
         $statuses = $event->statuses()
                           ->with([
-                                     'user.blockedUsers', 'checkin.originStation',
-                                     'checkin.destinationStation', 'checkin.Trip.stopovers', 'event', 'likes',
+                                     'user.blockedUsers', 'checkin.originStopover.station.names',
+                                     'checkin.destinationStopover.station.names', 'checkin.trip.stopovers', 'event', 'likes', 'tags',
                                  ])
                           ->select('statuses.*')
                           ->join('users', 'statuses.user_id', '=', 'users.id')
@@ -215,11 +221,13 @@ class StatusController extends Controller
 
                               //Option 1: User is public AND status is public
                               $query->where(function(Builder $query) {
+                                  $visibilities = [StatusVisibility::PUBLIC->value];
+                                  if (auth()->check()) {
+                                      $visibilities[] = StatusVisibility::AUTHENTICATED->value;
+                                  }
+
                                   $query->where('users.private_profile', 0)
-                                        ->whereIn('visibility', [
-                                            StatusVisibility::PUBLIC->value,
-                                            StatusVisibility::AUTHENTICATED->value
-                                        ]);
+                                        ->whereIn('visibility', $visibilities);
                               });
 
                               if (auth()->check()) {
@@ -253,8 +261,8 @@ class StatusController extends Controller
     public static function getFutureCheckins(): Paginator {
         return auth()->user()->statuses()
                      ->with([
-                                'user', 'checkin.originStation', 'checkin.destinationStation',
-                                'checkin.Trip', 'event',
+                                'user', 'checkin.originStopover.station.names', 'checkin.destinationStopover.station.names',
+                                'checkin.trip', 'event', 'tags',
                             ])
                      ->orderByDesc('created_at')
                      ->whereHas('checkin', function($query) {
@@ -264,15 +272,15 @@ class StatusController extends Controller
     }
 
     public static function createStatus(
-        User             $user,
-        Business         $business,
-        StatusVisibility $visibility,
-        string           $body = null,
-        Event            $event = null
+        User|Authenticatable $user,
+        Business             $business,
+        StatusVisibility     $visibility,
+        string               $body = null,
+        Event                $event = null
     ): Status {
-        if ($event !== null && !Carbon::now()->isBetween($event->begin, $event->end)) {
+        if ($event !== null && !Carbon::now()->isBetween($event->checkin_start, $event->checkin_end)) {
             Log::info('Event checkin was prevented because the event is not active anymore', [
-                'event' => $event->only(['id', 'name', 'begin', 'end']),
+                'event' => $event->only(['id', 'name', 'checkin_start', 'checkin_end']),
                 'user'  => $user->only(['id', 'username']),
             ]);
             $event = null;

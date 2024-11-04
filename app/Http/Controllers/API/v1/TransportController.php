@@ -9,17 +9,19 @@ use App\Enum\TravelType;
 use App\Exceptions\Checkin\AlreadyCheckedInException;
 use App\Exceptions\CheckInCollisionException;
 use App\Exceptions\HafasException;
-use App\Exceptions\NotConnectedException;
 use App\Exceptions\StationNotOnTripException;
-use App\Http\Controllers\Backend\Transport\HomeController;
+use App\Http\Controllers\Backend\Transport\StationController;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\HafasController;
 use App\Http\Controllers\TransportController as TransportBackend;
+use App\Http\Resources\CheckinSuccessResource;
 use App\Http\Resources\StationResource;
-use App\Http\Resources\StatusResource;
 use App\Http\Resources\TripResource;
-use App\Models\Event;
+use App\Hydrators\CheckinRequestHydrator;
 use App\Models\Station;
+use App\Models\Status;
+use App\Models\User;
+use App\Notifications\YouHaveBeenCheckedIn;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -32,148 +34,114 @@ use Illuminate\Validation\Rules\Enum;
 class TransportController extends Controller
 {
     /**
-     * @see All slashes (as well as encoded to %2F) in $name need to be replaced, preferrably by a space (%20)
-     */
-    public function getLegacyDepartures(Request $request, string $name): JsonResponse { //TODO: remove endpoint after 2024-06
-        $validated = $request->validate([
-                                            'when'       => ['nullable', 'date'],
-                                            'travelType' => ['nullable', new Enum(TravelType::class)],
-                                        ]);
-
-        try {
-            $trainStationboardResponse = TransportBackend::getDepartures(
-                stationQuery: $name,
-                when:         isset($validated['when']) ? Carbon::parse($validated['when']) : null,
-                travelType:   TravelType::tryFrom($validated['travelType'] ?? null),
-                localtime:    isset($validated['when']) && !preg_match('(\+|Z)', $validated['when'])
-            );
-        } catch (HafasException) {
-            return $this->sendError(__('messages.exception.generalHafas', [], 'en'), 502);
-        } catch (ModelNotFoundException) {
-            return $this->sendError(__('controller.transport.no-station-found', [], 'en'));
-        } catch (Exception $exception) {
-            report($exception);
-            return $this->sendError('An unknown error occurred.', 500);
-        }
-        return $this->sendResponse(
-            data:       $trainStationboardResponse['departures'],
-            additional: ["meta" => ['station' => StationDto::fromModel($trainStationboardResponse['station']),
-                                    'times'   => $trainStationboardResponse['times'],
-                        ]]
-        );
-    }
-
-    /**
+     * @param Request $request
+     * @param int     $stationId
+     *
+     * @return JsonResponse
+     * @todo: This endpoint needs to be restructured to use own Resources! Currently we just throw the raw db-rest response.
+     *
      * @OA\Get(
-     *     path="/station/{id}/departures",
-     *     operationId="getDepartures",
-     *     tags={"Checkin"},
-     *     summary="Get departures from a station",
-     *     description="Get departures from a station",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="Träwelling-ID of the station (you can look this up with [trainStationAutocomplete](#/Checkin/trainStationAutocomplete))",
-     *         required=true,
-     *     ),
-     *     @OA\Parameter(
-     *         name="when",
-     *         in="query",
-     *         description="When to get the departures (default: now).
-    If you omit the timezone, the datetime is interpreted as localtime.
-    This is especially helpful when träwelling abroad.",
-     *         required=false,
-     *         @OA\Schema(
-     *             type="string",
-     *             format="date-time",
-     *             example="2020-01-01T12:00:00.000Z"
-     *         )
-     *     ),
-     * @OA\Parameter(
-     *         name="travelType",
-     *         in="query",
-     *         description="Means of transport (default: all)",
-     *         required=false,
-     *         @OA\Schema(
-     *          ref="#/components/schemas/TravelTypeEnum"
-     *         )
-     *     ),
-     * @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     externalDocs="https://v5.db.transport.rest/api.html#get-stopsiddepartures",
-     *                     description="HAFAS Train model. This model might be subject to unexpected changes. See also
-     *                     external documentation at
-     *                     [https://v5.db.transport.rest/api.html#get-stopsiddepartures](https://v5.db.transport.rest/api.html#get-stopsiddepartures).",
-     *                     example={ "tripId": "1|200513|0|81|6012023", "stop": { "type": "stop", "id": "8000191",
-     *                     "name": "Karlsruhe Hbf", "location": { "type": "location", "id": "8000191", "latitude":
-     *                     48.99353, "longitude": 8.401939 }, "products": { "nationalExpress": true, "national": true,
-     *                     "regionalExp": true, "regional": true, "suburban": true, "bus": true, "ferry": false,
-     *                     "subway": false, "tram": true, "taxi": true } }, "when": "2023-01-06T13:49:00+01:00",
-     *                     "plannedWhen": "2023-01-06T13:49:00+01:00", "delay": null, "platform": "2",
-     *                     "plannedPlatform": "2", "direction": "Zürich HB", "provenance": null, "line": { "type":
-     *                     "line", "id": "ec-9", "fahrtNr": "9", "name": "EC 9", "public": true, "adminCode": "80____",
-     *                     "productName": "EC", "mode": "train", "product": "national", "operator": { "type":
-     *                     "operator", "id": "db-fernverkehr-ag", "name": "DB Fernverkehr AG" } }, "remarks": null,
-     *                     "origin": null, "destination": { "type": "stop", "id": "8503000", "name": "Zürich HB",
-     *                     "location": { "type": "location", "id": "8503000", "latitude": 47.378177, "longitude":
-     *                     8.540211 }, "products": { "nationalExpress": true, "national": true, "regionalExp": true,
-     *                     "regional": true, "suburban": true, "bus": true, "ferry": false, "subway": false, "tram":
-     *                     true, "taxi": false } }, "currentTripPosition": { "type": "location", "latitude": 48.725382,
-     *                     "longitude": 8.142888 }, "loadFactor": "high", "station": { "id": 5181, "ibnr": 8000191,
-     *                     "rilIdentifier": "RK", "name": "Karlsruhe Hbf", "latitude": "48.993530", "longitude":
-     *                     "8.401939" } }
-     *                 )
-     *            ),
-     *            @OA\Property(
-     *              property="meta",
+     *      path="/station/{id}/departures",
+     *      operationId="getDepartures",
+     *      tags={"Checkin"},
+     *      summary="Get departures from a station",
+     *      description="Get departures from a station.",
+     *      @OA\Parameter(
+     *          name="id",
+     *          in="path",
+     *          description="Träwelling-ID of the station (you can look this up with [trainStationAutocomplete](#/Checkin/trainStationAutocomplete))", required=true,
+     *      ),
+     *      @OA\Parameter(
+     *          name="when",
+     *          in="query",
+     *          description="When to get the departures (default: now). If you omit the timezone, the datetime is interpreted as localtime. This is especially helpful when träwelling abroad.",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string",
+     *              format="date-time",
+     *              example="2020-01-01T12:00:00.000Z"
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="travelType",
+     *          in="query",
+     *          description="Means of transport (default: all)",
+     *          required=false,
+     *          @OA\Schema(
+     *              ref="#/components/schemas/TravelType"
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
      *              type="object",
      *              @OA\Property(
-     *                  property="station",
-     *                  ref="#/components/schemas/Station"
+     *                  property="data",
+     *                  type="array",
+     *                  @OA\Items(
+     *                      externalDocs="https://v5.db.transport.rest/api.html#get-stopsiddepartures",
+     *                      description="HAFAS Train model. This model might be subject to unexpected changes. See also external documentation at [https://v5.db.transport.rest/api.html#get-stopsiddepartures](https://v5.db.transport.rest/api.html#get-stopsiddepartures).",
+     *                      example={
+     *                          "tripId": "1|200513|0|81|6012023", "stop": { "type": "stop", "id": "8000191",
+     *                          "name": "Karlsruhe Hbf", "location": { "type": "location", "id": "8000191", "latitude":
+     *                          48.99353, "longitude": 8.401939 }, "products": { "nationalExpress": true, "national": true,
+     *                          "regionalExp": true, "regional": true, "suburban": true, "bus": true, "ferry": false,
+     *                          "subway": false, "tram": true, "taxi": true } }, "when": "2023-01-06T13:49:00+01:00",
+     *                          "plannedWhen": "2023-01-06T13:49:00+01:00", "delay": null, "platform": "2",
+     *                          "plannedPlatform": "2", "direction": "Zürich HB", "provenance": null, "line": { "type":
+     *                          "line", "id": "ec-9", "fahrtNr": "9", "name": "EC 9", "public": true, "adminCode": "80____",
+     *                          "productName": "EC", "mode": "train", "product": "national", "operator": { "type":
+     *                          "operator", "id": "db-fernverkehr-ag", "name": "DB Fernverkehr AG" } }, "remarks": null,
+     *                          "origin": null, "destination": { "type": "stop", "id": "8503000", "name": "Zürich HB",
+     *                          "location": { "type": "location", "id": "8503000", "latitude": 47.378177, "longitude":
+     *                          8.540211 }, "products": { "nationalExpress": true, "national": true, "regionalExp": true,
+     *                          "regional": true, "suburban": true, "bus": true, "ferry": false, "subway": false, "tram":
+     *                          true, "taxi": false } }, "currentTripPosition": { "type": "location", "latitude": 48.725382,
+     *                          "longitude": 8.142888 }, "loadFactor": "high", "station": { "id": 5181, "ibnr": 8000191,
+     *                          "rilIdentifier": "RK", "name": "Karlsruhe Hbf", "latitude": "48.993530", "longitude":
+     *                          "8.401939" }
+     *                      }
+     *                 )
      *              ),
      *              @OA\Property(
-     *                  property="times",
-     *                 type="object",
-     *                 @OA\Property(
-     *                     property="now",
-     *                     type="string",
-     *                     format="date-time",
-     *                     example="2020-01-01T12:00:00.000Z"
-     *                ),
-     *                @OA\Property(
-     *                    property="prev",
-     *                    type="string",
-     *                    format="date-time",
-     *                    example="2020-01-01T11:45:00.000Z"
-     *               ),
-     *               @OA\Property(
-     *                   property="next",
-     *                   type="string",
-     *                   format="date-time",
-     *                   example="2020-01-01T12:15:00.000Z"
+     *                  property="meta",
+     *                  type="object",
+     *                  @OA\Property(
+     *                      property="station",
+     *                      ref="#/components/schemas/Station"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="times",
+     *                      type="object",
+     *                          @OA\Property(
+     *                              property="now",
+     *                              type="string",
+     *                              format="date-time",
+     *                              example="2020-01-01T12:00:00.000Z"
+     *                          ),
+     *                          @OA\Property(
+     *                              property="prev",
+     *                              type="string",
+     *                              format="date-time",
+     *                              example="2020-01-01T11:45:00.000Z"
+     *                          ),
+     *                          @OA\Property(
+     *                              property="next",
+     *                              type="string",
+     *                              format="date-time",
+     *                              example="2020-01-01T12:15:00.000Z"
+     *                          )
+     *                  )
      *              )
-     *         )
-     *         )
-     *        )
-     *     ),
+     *          )
+     *      ),
      *      @OA\Response(response=401, description="Unauthorized"),
      *      @OA\Response(response=404, description="Station not found"),
      *      @OA\Response(response=422, description="Invalid input"),
      *      @OA\Response(response=502, description="Error with our data provider"),
      *      security={{"passport": {"create-statuses"}}, {"token": {}}}
      * )
-     *
-     * @param Request $request
-     * @param int     $stationId
-     *
-     * @return JsonResponse
      */
     public function getDepartures(Request $request, int $stationId): JsonResponse {
         $validated = $request->validate([
@@ -249,16 +217,16 @@ class TransportController extends Controller
      *          description="successful operation",
      *          @OA\JsonContent(
      *              @OA\Property(property="data", type="object",
-     *                  @OA\Property(property="id", type="int64", example=1),
-     *                  @OA\Property(property="category", ref="#/components/schemas/TrainCategoryEnum"),
+     *                  @OA\Property(property="id", type="int", example=1),
+     *                  @OA\Property(property="category", ref="#/components/schemas/HafasTravelType"),
      *                  @OA\Property(property="number", type="string", example="4-a6s4-4"),
      *                  @OA\Property(property="lineName", type="string", example="S 4"),
-     *                  @OA\Property(property="journeyNumber", type="int64", example="34427"),
+     *                  @OA\Property(property="journeyNumber", type="int", example="34427"),
      *                  @OA\Property(property="origin", ref="#/components/schemas/Station"),
      *                  @OA\Property(property="destination", ref="#/components/schemas/Station"),
      *                  @OA\Property(property="stopovers", type="array",
      *                      @OA\Items(
-     *                          ref="#/components/schemas/Stopover"
+     *                          ref="#/components/schemas/StopoverResource"
      *                      )
      *                  ),
      *              )
@@ -289,6 +257,8 @@ class TransportController extends Controller
             return $this->sendResponse(data: new TripResource($trip));
         } catch (StationNotOnTripException) {
             return $this->sendError(__('controller.transport.not-in-stopovers', [], 'en'), 400);
+        } catch (HafasException) {
+            return $this->sendError(__('messages.exception.hafas.502', [], 'en'), 503);
         }
     }
 
@@ -360,9 +330,9 @@ class TransportController extends Controller
     /**
      * @OA\Post(
      *      path="/trains/checkin",
-     *      operationId="createTrainCheckin",
+     *      operationId="createCheckin",
      *      tags={"Checkin"},
-     *      summary="Create a checkin",
+     *      summary="Check in to a trip.",
      *      @OA\RequestBody(
      *          required=true,
      *          @OA\JsonContent(ref="#/components/schemas/CheckinRequestBody")
@@ -370,23 +340,24 @@ class TransportController extends Controller
      *      @OA\Response(
      *          response=201,
      *          description="successful operation",
-     *          @OA\JsonContent(ref="#/components/schemas/CheckinResponse")
+     *          @OA\JsonContent(ref="#/components/schemas/CheckinSuccessResource")
      *       ),
      *       @OA\Response(response=400, description="Bad request"),
-     *       @OA\Response(response=409, description="Checkin collision"),
      *       @OA\Response(response=401, description="Unauthorized"),
+     *       @OA\Response(response=403, description="Forbidden", @OA\JsonContent(ref="#/components/schemas/CheckinForbiddenWithUsersResponse")),
+     *       @OA\Response(response=409, description="Checkin collision"),
      *       security={
      *           {"passport": {"create-statuses"}}, {"token": {}}
-     *
      *       }
      *     )
      *
      * @param Request $request
      *
      * @return JsonResponse
-     * @throws NotConnectedException
      */
     public function create(Request $request): JsonResponse {
+        $this->authorize('create', Status::class);
+
         $validated = $request->validate([
                                             'body'        => ['nullable', 'max:280'],
                                             'business'    => ['nullable', new Enum(Business::class)],
@@ -401,49 +372,51 @@ class TransportController extends Controller
                                             'destination' => ['required', 'numeric'],
                                             'departure'   => ['required', 'date'],
                                             'arrival'     => ['required', 'date'],
-                                            'force'       => ['nullable', 'boolean']
+                                            'force'       => ['nullable', 'boolean'],
+                                            'with'        => ['nullable', 'array', 'max:10'],
                                         ]);
+        if (isset($validated['with'])) {
+            $withUsers      = User::whereIn('id', $validated['with'])->get();
+            $forbiddenUsers = collect();
+            foreach ($withUsers as $user) {
+                if (!Auth::user()?->can('checkin', $user)) {
+                    $forbiddenUsers->push($user);
+                }
+            }
+            if ($forbiddenUsers->isNotEmpty()) {
+                $forbiddenUserIds = $forbiddenUsers->pluck('id')->toArray();
+                return response()->json(
+                    data:   [
+                                'message' => 'You are not allowed to check in the following users: ' . implode(',', $forbiddenUserIds),
+                                'meta'    => [
+                                    'invalidUsers' => $forbiddenUserIds
+                                ]
+                            ],
+                    status: 403
+                );
+            }
+        }
 
         try {
-            $searchKey          = isset($validated['ibnr']) ? 'ibnr' : 'id';
-            $originStation      = Station::where($searchKey, $validated['start'])->first();
-            $destinationStation = Station::where($searchKey, $validated['destination'])->first();
+            $dto             = (new CheckinRequestHydrator($validated))->hydrateFromApi();
+            $checkinResponse = TrainCheckinController::checkin($dto);
 
-            $checkinResponse           = TrainCheckinController::checkin(
-                user:           Auth::user(),
-                trip:           HafasController::getHafasTrip($validated['tripId'], $validated['lineName']),
-                origin:         $originStation,
-                departure:      Carbon::parse($validated['departure']),
-                destination:    $destinationStation,
-                arrival:        Carbon::parse($validated['arrival']),
-                travelReason:   Business::tryFrom($validated['business'] ?? Business::PRIVATE->value),
-                visibility:     StatusVisibility::tryFrom($validated['visibility'] ?? StatusVisibility::PUBLIC->value),
-                body:           $validated['body'] ?? null,
-                event:          isset($validated['eventId']) ? Event::find($validated['eventId']) : null,
-                force:          isset($validated['force']) && $validated['force'],
-                postOnMastodon: isset($validated['toot']) && $validated['toot'],
-                shouldChain:    isset($validated['chainPost']) && $validated['chainPost']
-            );
-            $checkinResponse['status'] = new StatusResource($checkinResponse['status']);
+            // if isset, check in the other users with their default values
+            foreach ($withUsers ?? [] as $user) {
+                $dto->setUser($user);
+                $dto->setBody(null);
+                $dto->setStatusVisibility($user->default_status_visibility);
+                $dto->setPostOnMastodonFlag(false);
+                $checkin = TrainCheckinController::checkin($dto);
+                $user->notify(new YouHaveBeenCheckedIn($checkin->status, auth()->user()));
+                $checkinResponse->alsoOnThisConnection->push($checkin->status);
+            }
 
-            //Rewrite ['points'] so the DTO will match the documented structure -> non-breaking api change
-            $pointsCalculation         = $checkinResponse['points'];
-            $checkinResponse['points'] = [
-                'points'      => $pointsCalculation->points,
-                'calculation' => [
-                    'base'     => $pointsCalculation->basePoints,
-                    'distance' => $pointsCalculation->distancePoints,
-                    'factor'   => $pointsCalculation->factor,
-                    'reason'   => $pointsCalculation->reason->value,
-                ],
-                'additional'  => null, //unused old attribute (not removed so this isn't breaking)
-            ];
-
-            return $this->sendResponse($checkinResponse, 201); //ToDo: Check if documented structure has changed
+            return $this->sendResponse(new CheckinSuccessResource($checkinResponse), 201);
         } catch (CheckInCollisionException $exception) {
             return $this->sendError([
-                                        'status_id' => $exception->getCollision()->status_id,
-                                        'lineName'  => $exception->getCollision()->trip->linename
+                                        'status_id' => $exception->checkin->status_id,
+                                        'lineName'  => $exception->checkin->trip->linename
                                     ], 409);
 
         } catch (StationNotOnTripException) {
@@ -454,33 +427,6 @@ class TransportController extends Controller
             return $this->sendError(__('messages.exception.already-checkedin', [], 'en'), 400);
         }
     }
-
-    /**
-     * @param string $stationName
-     *
-     * @return JsonResponse
-     * @see        All slashes (as well as encoded to %2F) in $name need to be replaced, preferrably by a space (%20)
-     * @deprecated Replaced by setHome (with "ID" instead of StationName and without "trains" in the path)
-     */
-    public function setHomeLegacy(string $stationName): JsonResponse { //ToDo: Remove this endpoint after 2024-06 (replaced by id)
-        try {
-            $station = HafasController::getStations(query: $stationName, results: 1)->first();
-            if ($station === null) {
-                return $this->sendError("Your query matches no station");
-            }
-
-            $station = HomeController::setHome(user: auth()->user(), station: $station);
-
-            return $this->sendResponse(
-                data: new StationResource($station),
-            );
-        } catch (HafasException) {
-            return $this->sendError("There has been an error with our data provider", 502);
-        } catch (ModelNotFoundException) {
-            return $this->sendError("Your query matches no station");
-        }
-    }
-
 
     /**
      * @OA\Put(
@@ -552,7 +498,7 @@ class TransportController extends Controller
      *          @OA\JsonContent(
      *              @OA\Property(property="data", type="array",
      *                  @OA\Items(
-     *                      ref="#/components/schemas/AutocompleteStation"
+     *                      ref="#/components/schemas/StationResource"
      *                  )
      *              )
      *          )
@@ -601,6 +547,6 @@ class TransportController extends Controller
      *     )
      */
     public function getTrainStationHistory(): AnonymousResourceCollection {
-        return StationResource::collection(TransportBackend::getLatestArrivals(auth()->user()));
+        return StationResource::collection(StationController::getLatestArrivals(auth()->user()));
     }
 }

@@ -6,7 +6,6 @@ use App\Dto\CheckinSuccess;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
 use App\Events\StatusUpdateEvent;
-use App\Exceptions\PermissionException;
 use App\Http\Controllers\Backend\Helper\StatusHelper;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\Controller;
@@ -37,20 +36,28 @@ class StatusController extends Controller
         try {
             $status = Status::findOrFail($validated['statusId']);
             $this->authorize('update', $status);
+
+            $newVisibility = StatusVisibility::from($validated['checkinVisibility']);
+
+            //Check for disallowed status visibility changes
+            if(auth()->user()->can('disallow-status-visibility-change') && $newVisibility != StatusVisibility::PRIVATE) {
+                return back()->with('error', 'You are not allowed to update non-private statuses. Please set the status to private.');
+            }
+
             $status->update([
                                 'body'       => $validated['body'] ?? null,
                                 'business'   => Business::from($validated['business_check']),
-                                'visibility' => StatusVisibility::from($validated['checkinVisibility']),
+                                'visibility' => $newVisibility,
                             ]);
 
             $status->checkin->update([
-                                              'manual_departure' => isset($validated['manualDeparture']) ?
-                                                  Carbon::parse($validated['manualDeparture'], auth()->user()->timezone) :
-                                                  null,
-                                              'manual_arrival'   => isset($validated['manualArrival']) ?
-                                                  Carbon::parse($validated['manualArrival'], auth()->user()->timezone) :
-                                                  null,
-                                          ]);
+                                         'manual_departure' => isset($validated['manualDeparture']) ?
+                                             Carbon::parse($validated['manualDeparture'], auth()->user()->timezone) :
+                                             null,
+                                         'manual_arrival'   => isset($validated['manualArrival']) ?
+                                             Carbon::parse($validated['manualArrival'], auth()->user()->timezone) :
+                                             null,
+                                     ]);
 
             StatusUpdateEvent::dispatch($status->refresh());
 
@@ -82,7 +89,7 @@ class StatusController extends Controller
 
             return redirect()->route('status', ['id' => $status->id])
                              ->with('success', __('status.update.success'));
-        } catch (ModelNotFoundException|PermissionException) {
+        } catch (ModelNotFoundException) {
             return redirect()->back()->with('alert-danger', __('messages.exception.general'));
         } catch (AuthorizationException) {
             return redirect()->back()->with('alert-danger', __('error.status.not-authorized'));

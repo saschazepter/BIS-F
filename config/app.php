@@ -92,6 +92,7 @@ return [
         'de_pfl' => 'Deutsch (Pfälzisch)',
         'de_by'  => 'Deutsch (Bayerisch)',
         'en'     => 'English',
+        'es'     => 'Spanish',
         'it'     => 'Italiano',
         'fr'     => 'Français',
         'nl'     => 'Nederlands',
@@ -264,23 +265,12 @@ return [
         'email'    => env('MIX_LEGAL_EMAIL')
     ],
 
-    'telegram' => [
-        'admin_id' => env('TELEGRAM_ADMIN_ID'),
-        'token'    => env('TELEGRAM_TOKEN')
-    ],
-
-    'admin' => [
-        'notification' => [
-            'url'     => env('ADMIN_NOTIFICATION_URL'),
-            'chat_id' => env('ADMIN_NOTIFICATION_CHAT_ID'),
-        ]
-    ],
-
     'privacy' => [
         'account-deletion' => [
             'send-notification' => (bool) env('PRIVACY_ACCOUNT_DELETION_SEND_NOTIFICATION', false),
             'delete-account'    => (bool) env('PRIVACY_ACCOUNT_DELETION_DELETE_ACCOUNT', false),
         ]
-    ]
+    ],
 
+    'wikidata_fetcher_enabled' => env('WIKIDATA_FETCHER_ENABLED', false),
 ];

@@ -2,18 +2,18 @@ import "croppie/croppie";
 import API from "../api/api";
 
 var resize = $("#upload-demo").croppie({
-                                           enableExif: true,
-                                           enableOrientation: true,
-                                           viewport: {
-                                               width: 200,
-                                               height: 200,
-                                               type: "square"
-                                           },
-                                           boundary: {
-                                               width: 300,
-                                               height: 300
-                                           }
-                                       });
+    enableExif: true,
+    enableOrientation: true,
+    viewport: {
+        width: 400,
+        height: 400,
+        type: "square"
+    },
+    boundary: {
+        width: 400,
+        height: 400
+    }
+});
 
 $("#image").on("change", function () {
     $("#upload-demo").removeClass("d-none");
@@ -37,6 +37,13 @@ $(".upload-image").on("click", function () {
             .then(() => {
                 document.getElementById("theProfilePicture").src = img;
                 document.getElementById("btnModalDeleteProfilePicture")?.classList.remove("d-none");
+            })
+            .catch(function (error) {
+                if(error.status === 403) {
+                    notyf.error("Forbidden: You are not allowed to upload a profile picture.");
+                } else {
+                    notyf.error("An error occured while uploading the profile picture.");
+                }
             });
     });
 });

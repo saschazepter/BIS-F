@@ -8,11 +8,11 @@ use App\Exceptions\DistanceDeviationException;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\Controller;
 use App\Jobs\RefreshPolyline;
-use App\Models\Trip;
-use App\Models\PolyLine;
 use App\Models\Checkin;
+use App\Models\PolyLine;
+use App\Models\Trip;
 use App\Objects\LineSegment;
-use GuzzleHttp\Exception\ConnectException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +25,7 @@ use stdClass;
 
 abstract class BrouterController extends Controller
 {
-    public static function getHttpClient(): PendingRequest {
+    private static function getHttpClient(): PendingRequest {
         return Http::baseUrl(config('trwl.brouter_url'))
                    ->timeout(config('trwl.brouter_timeout'));
     }
@@ -35,9 +35,9 @@ abstract class BrouterController extends Controller
      * @param BrouterProfile $profile
      *
      * @return stdClass
-     * @throws JsonException|InvalidArgumentException|ConnectException
+     * @throws JsonException|InvalidArgumentException|ConnectionException
      */
-    public static function getGeoJSONForRoute(
+    private static function getGeoJSONForRoute(
         array          $coordinates,
         BrouterProfile $profile = BrouterProfile::RAIL //Maybe extend this for other travel types later
     ): stdClass {
@@ -80,7 +80,7 @@ abstract class BrouterController extends Controller
      * @throws JsonException
      */
     public static function reroutePolyline(Trip $trip): void {
-        if (App::runningUnitTests()) {
+        if (App::runningUnitTests() || !config('trwl.brouter')) {
             return;
         }
 
@@ -109,7 +109,7 @@ abstract class BrouterController extends Controller
         } catch (InvalidArgumentException) {
             Log::warning('[RefreshPolyline] Error while getting Polyline for Trip#' . $trip->trip_id . ' (Required data is missing in Brouter response)');
             return;
-        } catch (ConnectException) {
+        } catch (ConnectionException) {
             Log::info('[RefreshPolyline] Getting Polyline for Trip#' . $trip->trip_id . ' timed out.');
             return;
         }
@@ -176,7 +176,7 @@ abstract class BrouterController extends Controller
      *
      * @return void
      */
-    public static function recalculateDistanceAndPoints(Trip $trip, $polyline): void {
+    private static function recalculateDistanceAndPoints(Trip $trip, $polyline): void {
         DB::beginTransaction();
         $oldPolyLine = self::getOldPolyline($trip);
         Log::debug('[RefreshPolyline] Recalculating distance and points for Trip#' . $trip->trip_id);

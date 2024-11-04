@@ -1,6 +1,6 @@
 @extends('admin.layout')
 
-@section('title', 'Trip ' . $trip->trip_id)
+@section('title', 'Trip ' . $trip->id)
 
 @section('content')
 
@@ -11,7 +11,11 @@
                     <table class="table">
                         <tr>
                             <th>ID</th>
-                            <td>{{ $trip->trip_id }}</td>
+                            <td><code>{{ $trip->id }}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Trip ID</th>
+                            <td><input class="w-100" type="text" value="{{ $trip->trip_id }}" disabled/></td>
                         </tr>
                         <tr>
                             <th>Category</th>
@@ -46,7 +50,19 @@
                         </tr>
                         <tr>
                             <th>Last refreshed</th>
-                            <td>{{ $trip->last_refreshed }}</td>
+                            <td>{{ userTime($trip->last_refreshed?->format('c')) }}</td>
+                        </tr>
+                        <tr>
+                            <th>Polyline</th>
+                            <td>
+                                @isset($trip->polyline)
+                                    <code>{{ $trip->polyline->id }}</code> ({{ $trip->polyline->source }})
+                                    | parent:
+                                    <code>{{ $trip->polyline->parent_id ?? "NULL" }}</code> {{ $trip->polyline->parent?->source }}
+                                @else
+                                    <span class="text-danger">No polyline</span>
+                                @endisset
+                            </td>
                         </tr>
                     </table>
                 </div>
@@ -72,7 +88,7 @@
                                             </a>
                                         </td>
                                         <td>
-                                            {{$checkin->originStation->name}}
+                                            {{$checkin->originStopover->station->name}}
                                             <br/>
                                             <small>
                                                 dep {{$checkin->originStopover->departure_planned->format('H:i')}}
@@ -80,7 +96,7 @@
                                             </small>
                                         </td>
                                         <td>
-                                            {{$checkin->destinationStation->name}}
+                                            {{$checkin->destinationStopover->station->name}}
                                             <br/>
                                             <small>
                                                 arr {{$checkin->destinationStopover->arrival_planned->format('H:i')}}
@@ -105,12 +121,11 @@
                             <tr>
                                 <th scope="col">Name</th>
                                 <th scope="col">TRWL-ID</th>
+                                <th scope="col">Wikidata</th>
                                 <th scope="col">IBNR</th>
-                                <th scope="col">RIL100</th>
-                                <th scope="col">Ankunft plan</th>
-                                <th scope="col">real</th>
-                                <th scope="col">Abfahrt plan</th>
-                                <th scope="col">real</th>
+                                <th scope="col">RL100</th>
+                                <th scope="col">Ankunft soll / ist</th>
+                                <th scope="col">Abfahrt soll / ist</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -122,12 +137,24 @@
                                         </a>
                                     </td>
                                     <td>{{$stopover->station?->id}}</td>
+                                    <td>
+                                        <a href="https://www.wikidata.org/wiki/{{$stopover->station?->wikidata_id}}"
+                                           target="__blank">
+                                            {{$stopover->station?->wikidata_id}}
+                                        </a>
+                                    </td>
                                     <td>{{$stopover->station?->ibnr}}</td>
                                     <td>{{$stopover->station?->rilIdentifier}}</td>
-                                    <td>{{$stopover->arrival_planned?->format('H:i')}}</td>
-                                    <td>{{$stopover->arrival_real?->format('H:i')}}</td>
-                                    <td>{{$stopover->departure_planned?->format('H:i')}}</td>
-                                    <td>{{$stopover->departure_real?->format('H:i')}}</td>
+                                    <td title="{{$stopover->arrival_planned?->format('c')}}">
+                                        {{userTime($stopover->arrival_planned)}}
+                                        /
+                                        {{userTime($stopover->arrival_real?->format('H:i'))}}
+                                    </td>
+                                    <td title="{{$stopover->departure_planned?->format('c')}}">
+                                        {{userTime($stopover->departure_planned)}}
+                                        /
+                                        {{userTime($stopover->departure_real)}}
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

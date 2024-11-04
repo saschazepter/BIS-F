@@ -6,9 +6,9 @@ use App\Http\Controllers\Backend\Support\MentionHelper;
 use App\Models\Status;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use Tests\FeatureTestCase;
 
-class MentionTest extends TestCase
+class MentionTest extends FeatureTestCase
 {
     use RefreshDatabase;
 
@@ -20,6 +20,17 @@ class MentionTest extends TestCase
         $status = Status::factory()->create(['body' => $body]);
 
         $this->assertSame(2, $status->mentions->count());
+
+        // test MentionHelper
+        $helper   = new MentionHelper($status, $body);
+        $mentions = $helper->findUsersInString();
+        $this->assertCount(2, $mentions);
+        $mentionDto     = $mentions[0];
+        $jsonSerialized = $mentionDto->jsonSerialize();
+        $this->assertIsArray($jsonSerialized);
+        $this->assertArrayHasKey('user', $jsonSerialized);
+        $this->assertArrayHasKey('position', $jsonSerialized);
+        $this->assertArrayHasKey('length', $jsonSerialized);
     }
 
     public function testDeleteMentions(): void {
@@ -95,7 +106,7 @@ class MentionTest extends TestCase
 
     public function testMentionNotification(): void {
         $alice = User::factory()->create(['username' => 'alice']);
-        $bob = User::factory()->create(['username' => 'bob']);
+        $bob   = User::factory()->create(['username' => 'bob']);
 
         $status = Status::factory()->create(['body' => 'I\'m on my way with @alice and @bob']);
         $status->refresh();

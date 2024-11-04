@@ -2,19 +2,21 @@
 
 namespace Tests\Feature\Commands;
 
-use App\Models\Trip;
+use App\Models\Checkin;
 use App\Models\Like;
 use App\Models\PolyLine;
-use App\Models\Checkin;
+use App\Models\Trip;
 use App\Models\User;
 use App\Notifications\StatusLiked;
+use App\Services\PolylineStorageService;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Tests\TestCase;
+use PHPUnit\Framework\MockObject\Exception;
+use Tests\FeatureTestCase;
 
-class CleanUpTest extends TestCase
+class CleanUpTest extends FeatureTestCase
 {
 
     use RefreshDatabase;
@@ -35,21 +37,21 @@ class CleanUpTest extends TestCase
         $this->assertDatabaseCount('notifications', 1);
 
         //Notification should not be removed yet
-        $this->artisan('trwl:cleanUpNotifications')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:notifications')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('notifications', 1);
 
         //Mark notification as read
         $user->notifications->first()->markAsRead();
 
         //Notification should not be removed yet
-        $this->artisan('trwl:cleanUpNotifications')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:notifications')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('notifications', 1);
 
         //Simulate 31 days passing
         $this->travel(31)->days();
 
         //Notification should be removed now
-        $this->artisan('trwl:cleanUpNotifications')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:notifications')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('notifications', 0);
     }
 
@@ -57,13 +59,13 @@ class CleanUpTest extends TestCase
         //create an unused trip
         Trip::factory()->create();
         $this->assertDatabaseCount('hafas_trips', 1);
-        $this->artisan('trwl:cleanUpHafasTrips')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:trips')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('hafas_trips', 0);
 
         //create a checkin (factory creates a trip)
         Checkin::factory()->create();
         $this->assertDatabaseCount('hafas_trips', 1);
-        $this->artisan('trwl:cleanUpHafasTrips')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:trips')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('hafas_trips', 1);
     }
 
@@ -74,7 +76,9 @@ class CleanUpTest extends TestCase
         Password::createToken($user);
         $this->assertDatabaseCount('password_resets', 1);
 
-        $this->artisan('trwl:cleanUpPasswordResets')->assertExitCode(Command::SUCCESS);
+        $this->travel(2)->hours();
+
+        $this->artisan('app:clean-db:password-resets')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('password_resets', 0);
     }
 
@@ -85,26 +89,34 @@ class CleanUpTest extends TestCase
         $this->assertDatabaseCount('users', 1);
 
         //should not be removed yet
-        $this->artisan('trwl:cleanUpUsers')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:user')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('users', 1);
 
         //should be removed 25 hours later
         $this->travel(25)->hours();
-        $this->artisan('trwl:cleanUpUsers')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:user')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('users', 0);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testPolylineWithoutAnyReferenceAreDeleted(): void {
         $this->assertDatabaseCount('poly_lines', 0);
+        $service = new PolylineStorageService();
 
-        PolyLine::create([
-                             'hash'     => Str::uuid(),
-                             'polyline' => json_encode(['some json data']),
-                         ]);
+        $polyline = PolyLine::create([
+                                         'hash'     => Str::uuid(),
+                                         'polyline' => json_encode(['some json data']),
+                                     ]);
+        $content  = $polyline->polyline; // this will store the polyline in the storage
+        $hash     = $polyline->hash;
         $this->assertDatabaseCount('poly_lines', 1);
+        $this->assertSame($content, $service->get($hash));
 
-        $this->artisan('trwl:cleanUpPolylines')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:polylines')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('poly_lines', 0);
+        $this->assertSame('', $service->get($hash));
 
         //create a polyline with a reference and a parent
         //Checkin Factory creates a trip which creates a polyline
@@ -121,7 +133,7 @@ class CleanUpTest extends TestCase
         $this->assertDatabaseCount('poly_lines', 2);
 
         //no polylines should be deleted
-        $this->artisan('trwl:cleanUpPolylines')->assertExitCode(Command::SUCCESS);
+        $this->artisan('app:clean-db:polylines')->assertExitCode(Command::SUCCESS);
         $this->assertDatabaseCount('poly_lines', 2);
     }
 

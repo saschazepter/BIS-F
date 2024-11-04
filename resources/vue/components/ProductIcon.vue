@@ -25,7 +25,10 @@ export default {
             if (this.$props.product === 'taxi') {
                 return 'fa-taxi';
             }
-            return this.$props.product === 'train';
+            if (this.$props.product === 'ferry') {
+                return 'fa-ship';
+            }
+            return 'fa-train';
         }
     }
 }
@@ -33,8 +36,8 @@ export default {
 
 <template>
     <img v-if="productExists"
-        :alt="this.$props.product"
-        :src="this.iconPaths[this.$props.product]"
-        class="product-icon">
+         :alt="this.$props.product"
+         :src="this.iconPaths[this.$props.product]"
+         class="product-icon">
     <i v-else class="fas" :class="fontAwesomeIcon"></i>
 </template>

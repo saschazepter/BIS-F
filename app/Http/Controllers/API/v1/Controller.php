@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Models\OAuthClient;
+use App\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -11,10 +13,7 @@ use Throwable;
  * @OA\Info(
  *      version="1.0.0 - alpha",
  *      title="Träwelling API",
- *      description="Träwelling user API description. This is an incomplete documentation with still many errors. The
- *      API is currently not yet stable. Endpoints are still being restructured. Both the URL and the request or body
- *      can be changed. Breaking changes will be announced on GitHub:
- *      https://github.com/Traewelling/traewelling/blob/develop/API_CHANGELOG.md",
+ *      description="Träwelling user API description. This is an incomplete documentation with still many errors. The API is currently not yet stable. Endpoints are still being restructured. Both the URL and the request or body can be changed. Breaking changes will be announced on GitHub: https://github.com/Traewelling/traewelling/blob/develop/API_CHANGELOG.md",
  *      @OA\Contact(
  *          email="support@traewelling.de"
  *      ),
@@ -90,6 +89,10 @@ use Throwable;
  *     name="Webhooks",
  *     description="Manage Webhooks for third party applications"
  * )
+ * @OA\Tag(
+ *     name="Report",
+ *     description="Report a Status, Event or User to the admins"
+ * )
  */
 class Controller extends \App\Http\Controllers\Controller
 {
@@ -135,5 +138,12 @@ class Controller extends \App\Http\Controllers\Controller
             Log::debug('Could not get current OAuth Client: ' . $throwable->getMessage());
             return null;
         }
+    }
+
+    protected function getUserOrSelf(string|int $userIdOrSelf): Authenticatable {
+        if ($userIdOrSelf === 'self') {
+            return auth()->user();
+        }
+        return User::findOrFail($userIdOrSelf);
     }
 }

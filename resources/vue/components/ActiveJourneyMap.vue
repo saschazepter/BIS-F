@@ -8,6 +8,8 @@
 
 <script>
 import 'leaflet';
+import {trans} from "laravel-vue-i18n";
+import {DtmRange} from "../helpers/DateRange";
 
 import('Leaflet-MovingMaker/MovingMarker');
 
@@ -66,6 +68,7 @@ export default {
         }
     },
     methods: {
+        trans,
         renderMap() {
             this.map = L.map(this.$refs.map, {
                 center: [50.3, 10.47],
@@ -133,23 +136,28 @@ export default {
                 });
         },
         fetchEvents() {
-            fetch('/api/v1/activeEvents')
+            fetch('/api/v1/events')
                 .then((response) => response.json())
                 .then((results) => {
                     results.data.forEach(this.addEventMarker);
                 });
         },
         addEventMarker(event) {
+            if (!event.station) {
+                return;
+            }
             let marker = L.marker([event.station.latitude, event.station.longitude], {
                 title: event.name,
                 icon: eventIcon
             }).addTo(this.map);
 
+            const range = DtmRange.fromISO(event.begin, event.end);
+
             marker.bindPopup(`
                 <strong><a href="${event.url}">${event.name}</a></strong><br />
                 <i class="fa fa-user-clock"></i> ${event.host}<br />
-                <i class="fa fa-calendar-day"></i> ${event.begin} - ${event.end}<br />
-                <a href="/event/${event.slug}">Alle Reisen zum Event anzeigen</a>`
+                <i class="fa fa-calendar-day"></i> ${range.toLocaleDateString()}<br />
+                <a href="/event/${event.slug}">${trans('events.show-all-for-event')}</a>`
             );
         },
         getIconForStatus(response) {

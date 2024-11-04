@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+@php
+    use App\Http\Controllers\Backend\VersionController;
+ use App\Services\PrideService;
+@endphp
+    <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -44,7 +48,7 @@
         <div id="app">
             <nav class="navbar navbar-expand-md navbar-dark bg-trwl" id="nav-main">
                 <div class="container">
-                    <a class="navbar-brand" href="{{ url('/') }}">
+                    <a class="navbar-brand {{ PrideService::getCssClassesForPrideFlag() }}" href="{{ url('/') }}">
                         {{ config('app.name') }}
                     </a>
 
@@ -66,10 +70,12 @@
                                        href="{{ route('dashboard') }}">{{ __('menu.dashboard') }}</a>
                                 </li>
                             @endauth
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->is('leaderboard') ? 'active' : '' }}"
-                                   href="{{ route('leaderboard') }}">{{ __('menu.leaderboard') }}</a>
-                            </li>
+                            @if(!auth()->check() || auth()->user()->points_enabled)
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->is('leaderboard') ? 'active' : '' }}"
+                                       href="{{ route('leaderboard') }}">{{ __('menu.leaderboard') }}</a>
+                                </li>
+                            @endif
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->is('statuses/active') ? 'active' : '' }}"
                                    href="{{ route('statuses.active') }}">{{ __('menu.active') }}</a>
@@ -142,14 +148,13 @@
                                                 <i class="fas fa-cog"></i> {{ __('menu.settings') }}
                                             </a>
                                         </li>
-                                        @if(config('ticket.host') !== null)
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('static.about') }}">
-                                                    <i class="fa-solid fa-bug" aria-hidden="true"></i>
-                                                    {{ __('help') }}
-                                                </a>
-                                            </li>
-                                        @endif
+                                        <li>
+                                            <a class="dropdown-item" href="https://help.traewelling.de/faq/"
+                                               target="_blank">
+                                                <i class="fa-solid fa-bug" aria-hidden="true"></i>
+                                                {{ __('help') }}
+                                            </a>
+                                        </li>
                                         @if(auth()->user()->hasRole('admin') || auth()->user()->can('view-events'))
                                             <li>
                                                 <a class="dropdown-item" href="{{route('admin.dashboard')}}">
@@ -201,7 +206,8 @@
                                     </a>
                                 </li>
                                 <li class="nav-item mb-2">
-                                    <a href="{{ route('static.about') }}" class="nav-link p-0 text-body-secondary">
+                                    <a href="https://help.traewelling.de/faq/" target="_blank"
+                                       class="nav-link p-0 text-body-secondary">
                                         {{ __('menu.about') }}
                                     </a>
                                 </li>
@@ -292,7 +298,7 @@
                         <p class="mb-0 text-muted small">
                             Version
                             <a href="{{route('changelog')}}">
-                                {{ \App\Http\Controllers\Backend\VersionController::getVersion() }}
+                                {{ VersionController::getVersion() }}
                             </a>
                         </p>
                     </div>
@@ -317,7 +323,6 @@
             var token            = '{{ csrf_token() }}';
             var urlFollow        = '{{ route('follow.create') }}';
             var urlFollowRequest = '{{ route('follow.request') }}';
-            var urlTrainTrip     = '{{ route('trains.trip') }}';
             var urlUnfollow      = '{{ route('follow.destroy') }}';
             var urlAutocomplete  = '{{ url('transport/train/autocomplete') }}';
             var mapprovider      = '{{ Auth::user()->mapprovider ?? "default" }}';
@@ -330,6 +335,5 @@
         </script>
     </body>
 
-    @include('includes.check-in-modal')
     @yield('footer')
 </html>

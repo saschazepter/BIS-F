@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', __('events.live'))
+@section('canonical', route('events'))
 
 @section('meta-robots', 'index')
 
@@ -32,18 +33,21 @@
                                                         <br/>
                                                         <small class="text-muted">
                                                             {{__('events.closestStation')}}:
-                                                            <a href="{{route('trains.stationboard', ['station' => $event->station->ibnr])}}">
+                                                            <a href="{{route('stationboard', ['stationId' => $event->station->id, 'stationName' => $event->station->name ])}}">
                                                                 {{$event->station->name}}
                                                             </a>
                                                         </small>
                                                     @endisset
                                                 </td>
                                                 <td>
-                                                    @if($event->begin->isSameDay($event->end))
-                                                        {{$event->begin->format('d.m.Y')}}
+                                                    @if($event->start->isSameDay($event->end))
+                                                        {{$event->start->format('d.m.Y')}}
                                                     @else
-                                                        {{$event->begin->format('d.m.Y')}}
+                                                        {{$event->start->format('d.m.Y')}}
                                                         - {{$event->end->format('d.m.Y')}}
+                                                    @endif
+                                                    @if($event->hasExtendedCheckin)
+                                                        *
                                                     @endif
                                                 </td>
                                                 <td>
@@ -59,6 +63,9 @@
                                 </table>
                             </div>
                             {{$liveAndUpcomingEvents->links()}}
+                            <small class="text-muted">
+                                <sup>*</sup> {{__('events.disclaimer.extendedcheckin')}}
+                            </small>
                         @endif
                     </div>
                 </div>
@@ -107,12 +114,16 @@
                                     <label class="form-label" for="event-requester-url">{{__('events.url')}}</label>
                                 </div>
                                 <div class="form-floating mb-2">
-                                    <input type="text" id="event-requester-hashtag" name="hashtag" class="form-control"/>
-                                    <label class="form-label" for="event-requester-hashtag">{{__('events.hashtag')}}</label>
+                                    <input type="text" id="event-requester-hashtag" name="hashtag"
+                                           class="form-control"/>
+                                    <label class="form-label"
+                                           for="event-requester-hashtag">{{__('events.hashtag')}}</label>
                                 </div>
                                 <div class="form-floating mb-2" id="station-autocomplete-container">
-                                    <input type="text" id="station-autocomplete" name="nearestStation" class="form-control"/>
-                                    <label class="form-label" for="station-autocomplete">{{__('events.closestStation')}}</label>
+                                    <input type="text" id="station-autocomplete" name="nearestStation"
+                                           class="form-control"/>
+                                    <label class="form-label"
+                                           for="station-autocomplete">{{__('events.closestStation')}}</label>
                                 </div>
                                 <button type="submit" class="btn btn-primary">{{__('events.request-button')}}</button>
                             </form>

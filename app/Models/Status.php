@@ -14,23 +14,22 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * //properties
- * @property int              id
- * @property int              user_id
- * @property string           body
- * @property Business         business
- * @property StatusVisibility visibility
- * @property int              event_id
- * @property string           tweet_id
- * @property string           mastodon_post_id
+ * @property int                   id
+ * @property int                   user_id
+ * @property string                body
+ * @property Business              business
+ * @property StatusVisibility      visibility
+ * @property int                   event_id
+ * @property string                mastodon_post_id
  *
  * //relations
- * @property User             $user
- * @property Checkin          $checkin
- * @property Collection       $likes
- * @property OAuthClient      $client
- * @property Event            $event
- * @property Collection       $tags
- * @property Mention[]        $mentions
+ * @property User                  $user
+ * @property Checkin               $checkin
+ * @property Collection            $likes
+ * @property OAuthClient           $client
+ * @property Event                 $event
+ * @property Collection<StatusTag> $tags
+ * @property Mention[]             $mentions
  *
  * @todo merge model with "Checkin" (later only "Checkin") because the difference between trip sources (HAFAS,
  *       User, and future sources) should be handled in the Trip model.
@@ -40,16 +39,7 @@ class Status extends Model
 
     use HasFactory;
 
-    protected $fillable = [
-        'user_id',
-        'body',
-        'business',
-        'visibility',
-        'event_id',
-        'tweet_id',
-        'mastodon_post_id',
-        'client_id'
-    ];
+    protected $fillable = ['user_id', 'body', 'business', 'visibility', 'event_id', 'mastodon_post_id', 'client_id'];
     protected $hidden   = ['user_id', 'business'];
     protected $appends  = ['favorited', 'statusInvisibleToMe', 'description'];
     protected $casts    = [
@@ -58,7 +48,6 @@ class Status extends Model
         'business'         => Business::class,
         'visibility'       => StatusVisibility::class,
         'event_id'         => 'integer',
-        'tweet_id'         => 'string',
         'mastodon_post_id' => 'string',
         'client_id'        => 'integer'
     ];
@@ -112,12 +101,12 @@ class Status extends Model
         }
         return __('description.status', [
             'username'    => $this->user->name,
-            'origin'      => $this->checkin->originStation->name .
-                             ($this->checkin->originStation->rilIdentifier ?
-                                 ' (' . $this->checkin->originStation->rilIdentifier . ')' : ''),
-            'destination' => $this->checkin->destinationStation->name .
-                             ($this->checkin->destinationStation->rilIdentifier ?
-                                 ' (' . $this->checkin->destinationStation->rilIdentifier . ')' : ''),
+            'origin'      => $this->checkin->originStopover->station->name .
+                             ($this->checkin->originStopover->station->rilIdentifier ?
+                                 ' (' . $this->checkin->originStopover->station->rilIdentifier . ')' : ''),
+            'destination' => $this->checkin->destinationStopover->station->name .
+                             ($this->checkin->destinationStopover->station->rilIdentifier ?
+                                 ' (' . $this->checkin->destinationStopover->station->rilIdentifier . ')' : ''),
             'date'        => $this->checkin->departure->isoFormat(__('datetime-format')),
             'lineName'    => $this->checkin->trip->linename
         ]);

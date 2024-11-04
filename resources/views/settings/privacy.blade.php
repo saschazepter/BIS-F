@@ -1,9 +1,9 @@
 @extends('layouts.settings')
-@section('title', __('settings.title-loginservices'))
+@section('title', __('settings.title-privacy'))
 
 @section('content')
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-7">
+        <div class="col-md-7 col-lg-6">
             <div class="card mb-3">
                 <div class="card-header">{{ __('settings.title-privacy') }}</div>
 
@@ -102,6 +102,16 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="form-group row">
+                            <div class="col-md-6 offset-md-4">
+                                <div class="custom-control custom-checkbox custom-control-inline">
+                                    <input id="points_enabled" type="checkbox"
+                                           class="custom-control-input @error('points_enabled') is-invalid @enderror"
+                                           name="points_enabled" {{ auth()->user()->points_enabled ? 'checked' : '' }} />
+                                    {{ __('user.points-enabled') }}
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="form-group row">
                             <div class="col-md-6 offset-md-4">
@@ -129,6 +139,14 @@
                     </form>
                 </div>
             </div>
+        </div>
+        <div class="col-md-5">
+            @if(auth()->user()?->hasRole('open-beta'))
+                <div id="settings-friend-checkin">
+                    <friend-checkin-settings>
+                    </friend-checkin-settings>
+                </div>
+            @endif
         </div>
     </div>
 @endsection
