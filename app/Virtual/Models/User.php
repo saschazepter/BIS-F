@@ -190,6 +190,18 @@ class User
 
     /**
      * @OA\Property (
+     *     title="followedBy",
+     *     description="Is the user following you?",
+     *     type="boolean",
+     *     example=false
+     * )
+     *
+     * @var bool
+     */
+    private $followedBy;
+
+    /**
+     * @OA\Property (
      *     title="preventIndex",
      *     description="Did the user choose to prevent search engines from indexing their profile?",
      *     type="boolean",

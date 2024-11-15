@@ -265,6 +265,7 @@
     "profile.follow": "Follow",
     "profile.follow_req": "Request",
     "profile.follow_req.pending": "Pending",
+    "profile.follows-you": "Follows you",
     "profile.last-journeys-of": "Last journeys of",
     "profile.no-statuses": ":username hasn't checked into any trips yet.",
     "profile.no-visible-statuses": "The journeys of :username are not visible.",

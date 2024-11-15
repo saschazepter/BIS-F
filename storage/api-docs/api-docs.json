@@ -1572,7 +1572,7 @@
                     "Checkin"
                 ],
                 "summary": "Search for stations",
-                "description": "UNSTABLE: This request returns an array of max. 20 station objects matching the query. **CAUTION:** All\n     *      slashes (as well as encoded to %2F) in {query} need to be replaced, preferrably by a space (%20)",
+                "description": "UNSTABLE: This request returns an array of max. 20 station objects matching the query. **CAUTION:** All\r\n     *      slashes (as well as encoded to %2F) in {query} need to be replaced, preferrably by a space (%20)",
                 "operationId": "indexStation",
                 "parameters": [
                     {
@@ -6093,6 +6093,12 @@
                     "followPending": {
                         "title": "followPending",
                         "description": "Is there a currently pending follow request?",
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "followedBy": {
+                        "title": "followedBy",
+                        "description": "Is the user following you?",
                         "type": "boolean",
                         "example": false
                     },

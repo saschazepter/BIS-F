@@ -32,6 +32,11 @@
                     <small class="font-weight-light profile-tag">{{ '@'. $user->username }}</small>
                     @auth
                         <div class="d-flex flex-row justify-content-md-start align-items-md-center gap-2">
+                        @if($user->followedBy)
+                            <div class="alert-success p-1 rounded-1">
+                                {{__('profile.follows-you')}}
+                            </div>
+                        @endif
                         @include('includes.follow-button')
                             @if(auth()->user()->id != $user->id)
                                 <x-mute-button :user="$user"/>

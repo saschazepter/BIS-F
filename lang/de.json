@@ -286,6 +286,7 @@
     "profile.follow": "Folgen",
     "profile.follow_req": "Anfragen",
     "profile.follow_req.pending": "Ausstehend",
+    "profile.follows-you": "Folgt dir",
     "profile.last-journeys-of": "Letzte Reisen von",
     "profile.no-statuses": ":username hat bisher in keine Reisen eingecheckt.",
     "profile.no-visible-statuses": "Die Reisen von :username sind nicht sichtbar.",
