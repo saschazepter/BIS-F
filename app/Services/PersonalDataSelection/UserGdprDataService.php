@@ -18,13 +18,10 @@ class UserGdprDataService
     }
 
     private function addUserPersonalData(PersonalDataSelection $personalDataSelection, User $userModel): void {
-        $user                      = $userModel->toArray();
-        $user['email']             = $userModel->email;
-        $user['email_verified_at'] = $userModel->email_verified_at;
-        $user['privacy_ack_at']    = $userModel->privacy_ack_at;
-        $user['last_login']        = $userModel->last_login;
-        $user['created_at']        = $userModel->created_at;
-        $user['updated_at']        = $userModel->updated_at;
+        $userData = $userModel->only([
+                                         'email', 'email_verified_at', 'privacy_ack_at',
+                                         'last_login', 'created_at', 'updated_at'
+                                     ]);
 
         $webhooks = $userModel->webhooks()->with('events')->get();
         $webhooks = $webhooks->map(function($webhook) {
@@ -42,7 +39,7 @@ class UserGdprDataService
         }
 
         $personalDataSelection
-            ->add('user.json', $user)
+            ->add('user.json', $userData)
             ->add('notifications.json', $userModel->notifications()->get()->toJson())
             ->add('likes.json', $userModel->likes()->get()->toJson())
             ->add('social_profile.json', $userModel->socialProfile()->with('mastodonserver')->get())
