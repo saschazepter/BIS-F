@@ -268,6 +268,10 @@ class User extends Authenticatable implements MustVerifyEmail, ExportsPersonalDa
         return auth()->check() && auth()->user()->mutedUsers->contains('id', $this->id);
     }
 
+    public function getFollowedByAttribute(): bool {
+        return (auth()->check() && $this->followings->contains('follow_id', auth()->user()->id));
+    }
+
     /**
      * The auth-user is blocked by $this user. auth-user can not see $this's statuses.
      */

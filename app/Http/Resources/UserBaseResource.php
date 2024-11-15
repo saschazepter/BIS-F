@@ -38,6 +38,7 @@ class UserBaseResource extends JsonResource
                     'muted'             => (bool) $this->muted,
                     'following'         => (bool) $this->following,
                     'followPending'     => (bool) $this->followPending,
+                    'followedBy'        => (bool) $this->followedBy,
                 ])
         ];
     }
