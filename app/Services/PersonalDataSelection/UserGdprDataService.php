@@ -19,6 +19,9 @@ class UserGdprDataService
 
     private function addUserPersonalData(PersonalDataSelection $personalDataSelection, User $userModel): void {
         $userData = $userModel->only([
+                                         'name', 'username', 'home_id', 'private_profile', 'default_status_visibility',
+                                         'default_status_sensitivity', 'prevent_index', 'privacy_hide_days', 'language',
+                                         'timezone', 'friend_checkin', 'likes_enabled', 'points_enabled', 'mapprovider',
                                          'email', 'email_verified_at', 'privacy_ack_at',
                                          'last_login', 'created_at', 'updated_at'
                                      ]);
