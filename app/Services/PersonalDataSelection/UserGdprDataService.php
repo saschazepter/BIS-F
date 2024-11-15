@@ -28,11 +28,9 @@ class UserGdprDataService
 
         $webhooks = $userModel->webhooks()->with('events')->get();
         $webhooks = $webhooks->map(function($webhook) {
-            $webhook['created_at'] = $webhook->created_at;
-            $webhook['updated_at'] = $webhook->updated_at;
-            $webhook['client_id']  = (int) $webhook->oauth_client_id ?? null;
-            unset($webhook['url']);
-            return $webhook;
+            return $webhook->only([
+                                      'oauth_client_id', 'created_at', 'updated_at'
+                                  ]);
         });
 
 
