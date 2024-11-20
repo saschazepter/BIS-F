@@ -10,6 +10,7 @@ use App\Models\SocialLoginProfile;
 use App\Models\Status;
 use App\Models\User;
 use App\Notifications\MastodonNotSent;
+use App\Services\MastodonDomainExtractionService;
 use Error;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
@@ -54,7 +55,7 @@ abstract class MastodonController extends Controller
      * @throws InvalidMastodonException
      */
     public static function getMastodonServer(string $domain): ?MastodonServer {
-        $domain = self::formatDomain($domain);
+        $domain = (new MastodonDomainExtractionService())->formatDomain($domain);
 
         $mastodonServer = MastodonServer::where('domain', $domain)->first();
 
@@ -65,22 +66,6 @@ abstract class MastodonController extends Controller
         }
 
         return $mastodonServer ?? self::createMastodonServer($domain);
-    }
-
-    public static function formatDomain(string $domain): string {
-        $domain = strtolower($domain);
-
-        // remove leading usernames
-        if (str_contains($domain, '@')) {
-            $domain = last(explode('@', $domain));
-        }
-
-        // Force HTTPS
-        $domain = str_replace('http://', 'https://', $domain);
-        if (!str_starts_with($domain, 'https://')) {
-            $domain = 'https://' . $domain;
-        }
-        return $domain;
     }
 
     /**
