@@ -30,7 +30,7 @@ class FrontendUserController extends Controller
             $statuses = null;
         }
 
-        return view('profile', [
+        return view('profile.profile', [
             'statuses' => $statuses,
             'user'     => $user,
         ]);
