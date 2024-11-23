@@ -309,7 +309,7 @@ abstract class TrainCheckinController extends Controller
     public static function calculateCheckinDuration(Checkin $checkin, bool $update = true): int {
         $departure = $checkin->manual_departure ?? $checkin->originStopover->departure ?? $checkin->departure;
         $arrival   = $checkin->manual_arrival ?? $checkin->destinationStopover->arrival ?? $checkin->arrival;
-        $duration  = $arrival->diffInMinutes($departure);
+        $duration  = $departure->diffInMinutes($arrival);
         //don't use eloquent here, because it would trigger the observer (and this function) again
         if ($update) {
             DB::table('train_checkins')->where('id', $checkin->id)->update(['duration' => $duration]);
