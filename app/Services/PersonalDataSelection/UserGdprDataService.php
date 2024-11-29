@@ -3,24 +3,23 @@
 namespace App\Services\PersonalDataSelection;
 
 use App\Http\Controllers\Backend\User\TokenController;
-use App\Models\Event;
-use App\Models\EventSuggestion;
-use App\Models\Mention;
 use App\Models\User;
-use App\Models\WebhookCreationRequest;
 use App\Services\PersonalDataSelection\Exporters\ActivityLogExporter;
 use App\Services\PersonalDataSelection\Exporters\Base\Exporter;
 use App\Services\PersonalDataSelection\Exporters\BlocksExporter;
+use App\Services\PersonalDataSelection\Exporters\EventExporter;
+use App\Services\PersonalDataSelection\Exporters\EventSuggestionsExporter;
 use App\Services\PersonalDataSelection\Exporters\FollowingsExporter;
 use App\Services\PersonalDataSelection\Exporters\FollowRequestsExporter;
 use App\Services\PersonalDataSelection\Exporters\FollowsExporter;
 use App\Services\PersonalDataSelection\Exporters\FollowsRequestsExporter;
 use App\Services\PersonalDataSelection\Exporters\HafasTripsExporter;
+use App\Services\PersonalDataSelection\Exporters\MentionExporter;
 use App\Services\PersonalDataSelection\Exporters\MutesExporter;
 use App\Services\PersonalDataSelection\Exporters\PasswordResetsExporter;
 use App\Services\PersonalDataSelection\Exporters\ReportsExporter;
-use App\Services\PersonalDataSelection\Exporters\StatusExporter;
 use App\Services\PersonalDataSelection\Exporters\TrustedUsersExporter;
+use App\Services\PersonalDataSelection\Exporters\WebhookCreationRequestExporter;
 use Spatie\PersonalDataExport\PersonalDataSelection;
 
 class UserGdprDataService
@@ -56,25 +55,18 @@ class UserGdprDataService
             ->add('notifications.json', $userModel->notifications()->get()->toJson()) //TODO: columns definieren
             ->add('likes.json', $userModel->likes()->get()->toJson()) //TODO: columns definieren
             ->add('social_profile.json', $userModel->socialProfile()->with('mastodonserver')->get()) //TODO: columns definieren
-            ->add('event_suggestions.json', EventSuggestion::where('user_id', $userModel->id)->get()->toJson()) //TODO: columns definieren
-            ->add('events.json', Event::where('approved_by', $userModel->id)->get()->toJson()) //TODO: columns definieren
             ->add('webhooks.json', $webhooks)
-            ->add(
-                'webhook_creation_requests.json',
-                WebhookCreationRequest::where('user_id', $userModel->id)->get()->toJson() //TODO: columns definieren
-            )
             ->add('tokens.json', TokenController::index($userModel)->toJson()) //TODO: columns definieren
             ->add('ics_tokens.json', $userModel->icsTokens()->get()->toJson())                                          //TODO: columns definieren
             ->add('apps.json', $userModel->oAuthClients()->get()->toJson()) //TODO: columns definieren
             ->add('sessions.json', $userModel->sessions()->get()->toJson()) //TODO: columns definieren
-            ->add('home.json', $userModel->home()->get()->toJson()) //TODO: columns definieren
-            ->add('mentions.json', Mention::where('mentioned_id', $userModel->id)->get()->toJson())                               //TODO: columns definieren
+            ->add('home.json', $userModel->home()->get()->toJson())                                                               //TODO: columns definieren
             ->add('roles.json', $userModel->roles()->get()->toJson())                                                             //TODO: columns definieren
             ->add('permissions.json', $userModel->permissions()->get()->toJson()) //TODO: columns definieren
         ;
         $exporter = new Exporter($personalDataSelection, $userModel);
         $exporter->export([
-                              StatusExporter::class,
+                              //StatusExporter::class,
                               FollowRequestsExporter::class,
                               FollowsRequestsExporter::class,
                               FollowsExporter::class,
@@ -86,6 +78,10 @@ class UserGdprDataService
                               TrustedUsersExporter::class,
                               ActivityLogExporter::class,
                               PasswordResetsExporter::class,
+                              EventExporter::class,
+                              EventSuggestionsExporter::class,
+                              WebhookCreationRequestExporter::class,
+                              MentionExporter::class,
                           ]);
     }
 }
