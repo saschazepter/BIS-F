@@ -8,7 +8,7 @@ use App\Services\PersonalDataSelection\Exporters\Base\AbstractExporter;
 
 class StatusExporter extends AbstractExporter
 {
-    protected $fileName = 'statuses.json';
+    protected string $fileName = 'statuses.json';
 
     public function exportData(): array|string {
         return $this->user->statuses()->with('tags')->get()->toArray(); // todo: columns definieren

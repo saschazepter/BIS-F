@@ -85,6 +85,9 @@ class UserGdprDataService
             )
             ->add('trusted_users.json', DB::table('trusted_users')->where('user_id', $userModel->id)->get()); //TODO: columns definieren
 
-        (new Exporter($personalDataSelection, StatusExporter::class, $userModel))->export();
+        $exporter = new Exporter($personalDataSelection, $userModel);
+        $exporter->export([
+                              StatusExporter::class
+                          ]);
     }
 }
