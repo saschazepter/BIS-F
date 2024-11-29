@@ -9,10 +9,18 @@ use Illuminate\Support\Facades\DB;
 trait DatabaseExportable
 {
     protected function exportData(): array {
-        return DB::table($this->tableName)
-                 ->select($this->columns)
-                 ->where($this->whereColumn, $this->user->id)
-                 ->get()->toArray();
+
+        $condition = $this->whereCondition ?? 'id';
+
+        $db = DB::table($this->tableName)
+                ->select($this->columns)
+                ->where($this->whereColumn, $this->user->{$condition});
+
+        if (!empty($this->whereConditions)) {
+            $db->where($this->whereConditions);
+        }
+
+        return $db->get()->toArray();
     }
 
     protected function onExportValidation(): bool {
