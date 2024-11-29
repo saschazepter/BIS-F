@@ -7,12 +7,12 @@ namespace App\Services\PersonalDataSelection\Exporters;
 use App\Services\PersonalDataSelection\Exporters\Base\AbstractExporter;
 use App\Services\PersonalDataSelection\Exporters\Base\RelationExportable;
 
-class StatusExporter extends AbstractExporter
+class SocialProfileExporter extends AbstractExporter
 {
     use RelationExportable;
 
-    protected string $fileName = 'statuses.json';
-    protected string $relation = 'statuses';
-    protected string $with     = 'tags';
+    protected string $fileName = 'social_profiles.json';
+    protected string $relation = 'socialProfile';
+    protected string $with     = 'mastodonserver';
     // todo: columns
 }

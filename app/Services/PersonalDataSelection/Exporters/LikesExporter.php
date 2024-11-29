@@ -7,12 +7,11 @@ namespace App\Services\PersonalDataSelection\Exporters;
 use App\Services\PersonalDataSelection\Exporters\Base\AbstractExporter;
 use App\Services\PersonalDataSelection\Exporters\Base\RelationExportable;
 
-class StatusExporter extends AbstractExporter
+class LikesExporter extends AbstractExporter
 {
     use RelationExportable;
 
-    protected string $fileName = 'statuses.json';
-    protected string $relation = 'statuses';
-    protected string $with     = 'tags';
+    protected string $fileName = 'likes.json';
+    protected string $relation = 'likes';
     // todo: columns
 }
