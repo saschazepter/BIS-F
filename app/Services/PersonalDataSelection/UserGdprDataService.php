@@ -9,6 +9,10 @@ use App\Models\Mention;
 use App\Models\User;
 use App\Models\WebhookCreationRequest;
 use App\Services\PersonalDataSelection\Exporters\Base\Exporter;
+use App\Services\PersonalDataSelection\Exporters\FollowingsExporter;
+use App\Services\PersonalDataSelection\Exporters\FollowRequestsExporter;
+use App\Services\PersonalDataSelection\Exporters\FollowsExporter;
+use App\Services\PersonalDataSelection\Exporters\FollowsRequestsExporter;
 use App\Services\PersonalDataSelection\Exporters\StatusExporter;
 use Illuminate\Support\Facades\DB;
 use Spatie\PersonalDataExport\PersonalDataSelection;
@@ -60,12 +64,8 @@ class UserGdprDataService
                 DB::table('password_resets')->select(['email', 'created_at'])->where('email', $userModel->email)->get() //TODO: columns definieren
             )
             ->add('apps.json', $userModel->oAuthClients()->get()->toJson()) //TODO: columns definieren
-            ->add('follows.json', DB::table('follows')->where('user_id', $userModel->id)->get()) //TODO: columns definieren
-            ->add('followings.json', DB::table('follows')->where('follow_id', $userModel->id)->get()) //TODO: columns definieren
             ->add('blocks.json', DB::table('user_blocks')->where('user_id', $userModel->id)->get()) //TODO: columns definieren
             ->add('mutes.json', DB::table('user_mutes')->where('user_id', $userModel->id)->get()) //TODO: columns definieren
-            ->add('follow_requests.json', DB::table('follow_requests')->where('user_id', $userModel->id)->get()) //TODO: columns definieren
-            ->add('follows_requests.json', DB::table('follow_requests')->where('follow_id', $userModel->id)->get()) //TODO: columns definieren
             ->add('sessions.json', $userModel->sessions()->get()->toJson()) //TODO: columns definieren
             ->add('home.json', $userModel->home()->get()->toJson()) //TODO: columns definieren
             ->add('hafas_trips.json', DB::table('hafas_trips')->where('user_id', $userModel->id)->get()) //TODO: columns definieren
@@ -87,7 +87,11 @@ class UserGdprDataService
 
         $exporter = new Exporter($personalDataSelection, $userModel);
         $exporter->export([
-                              StatusExporter::class
+                              StatusExporter::class,
+                              FollowRequestsExporter::class,
+                              FollowsRequestsExporter::class,
+                              FollowsExporter::class,
+                              FollowingsExporter::class
                           ]);
     }
 }

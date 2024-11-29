@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\PersonalDataSelection\Exporters\Base;
 
 use App\Models\User;
+use InvalidArgumentException;
 
 abstract class AbstractExporter
 {
@@ -15,7 +16,7 @@ abstract class AbstractExporter
         $this->user = $user;
 
         if (!isset($this->fileName)) {
-            throw new \InvalidArgumentException('Property $fileName must be set in ' . static::class);
+            throw new InvalidArgumentException('Property $fileName must be set in ' . static::class);
         }
     }
 
@@ -24,12 +25,18 @@ abstract class AbstractExporter
     }
 
     public function getData(): array|string {
-        $this->onExportValidation();
+        if (!$this->onExportValidation()) {
+            throw new InvalidArgumentException('Export validation failed in ' . static::class);
+        }
+
+        if (empty($this->fileName)) {
+            throw new InvalidArgumentException('Property $fileName must be set in ' . static::class);
+        }
 
         return $this->exportData();
     }
 
     abstract protected function exportData(): array|string;
 
-    abstract protected function onExportValidation(): void;
+    abstract protected function onExportValidation(): bool;
 }
