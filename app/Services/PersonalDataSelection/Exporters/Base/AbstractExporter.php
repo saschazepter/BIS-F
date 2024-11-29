@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\PersonalDataSelection\Exporters\Base;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 
 abstract class AbstractExporter
 {
@@ -24,5 +23,13 @@ abstract class AbstractExporter
         return $this->fileName;
     }
 
-    abstract protected function exportData(): array|string|Collection;
+    public function getData(): array|string {
+        $this->onExportValidation();
+
+        return $this->exportData();
+    }
+
+    abstract protected function exportData(): array|string;
+
+    abstract protected function onExportValidation(): void;
 }

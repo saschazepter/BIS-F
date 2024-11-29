@@ -29,7 +29,7 @@ class Exporter
         /** @var AbstractExporter $exporter */
         foreach ($this->exporters as $exporter) {
             $exporter = new $exporter($this->user);
-            $this->personalDataSelection->add($exporter->getFileName(), $exporter->exportData());
+            $this->personalDataSelection->add($exporter->getFileName(), $exporter->getData());
         }
     }
 

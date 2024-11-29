@@ -6,5 +6,7 @@ namespace App\Services\PersonalDataSelection\Exporters\Base;
 
 trait ModelExportable
 {
-
+    protected function onExportValidation(): void {
+        // todo check for model + columns
+    }
 }
