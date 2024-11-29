@@ -8,6 +8,8 @@ use App\Models\EventSuggestion;
 use App\Models\Mention;
 use App\Models\User;
 use App\Models\WebhookCreationRequest;
+use App\Services\PersonalDataSelection\Exporters\Base\Exporter;
+use App\Services\PersonalDataSelection\Exporters\StatusExporter;
 use Illuminate\Support\Facades\DB;
 use Spatie\PersonalDataExport\PersonalDataSelection;
 
@@ -74,14 +76,15 @@ class UserGdprDataService
                 DB::table('activity_log')->where('causer_type', get_class($userModel))->where('causer_id', $userModel->id)->get() //TODO: columns definieren
             )
             ->add('permissions.json', $userModel->permissions()->get()->toJson()) //TODO: columns definieren
-            ->add('statuses.json', $userModel->statuses()->with('tags')->get()) //TODO: columns definieren
             ->add(
                 'reports.json',
                 DB::table('reports')
                   ->select('subject_type', 'subject_id', 'reason', 'description', 'reporter_id')
                   ->where('reporter_id', $userModel->id)
-                  ->get()                                                       //TODO: columns definieren
+                  ->get()                                                         //TODO: columns definieren
             )
             ->add('trusted_users.json', DB::table('trusted_users')->where('user_id', $userModel->id)->get()); //TODO: columns definieren
+
+        (new Exporter($personalDataSelection, StatusExporter::class, $userModel))->export();
     }
 }
