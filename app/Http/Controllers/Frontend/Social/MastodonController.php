@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend\Social;
 use App\Exceptions\SocialAuth\InvalidMastodonException;
 use App\Http\Controllers\Backend\Social\MastodonController as MastodonBackend;
 use App\Http\Controllers\Controller;
+use App\Services\MastodonDomainExtractionService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,7 @@ class MastodonController extends Controller
      * @throws ValidationException
      */
     public function redirect(Request $request): SympfonyRedirectResponse|RedirectResponse {
-        $domain    = MastodonBackend::formatDomain($request->input('domain') ?? '');
+        $domain    = (new MastodonDomainExtractionService)->formatDomain($request->input('domain') ?? '');
         $validator = Validator::make(['domain' => $domain], ['domain' => ['required', 'active_url']]);
         $validated = $validator->validate();
 
