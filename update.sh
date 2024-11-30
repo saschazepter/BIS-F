@@ -31,6 +31,10 @@ restart_queue() {
     if [ -f /etc/systemd/system/traewelling-queue-webhook.service ]; then
         sudo systemctl restart traewelling-queue-webhook
     fi
+
+    if [ -f /etc/systemd/system/traewelling-queue-export.service ]; then
+        sudo systemctl restart traewelling-queue-export
+    fi
 }
 
 pre_run
