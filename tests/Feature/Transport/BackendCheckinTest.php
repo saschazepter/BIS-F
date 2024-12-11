@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Transport;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Enum\TravelType;
 use App\Exceptions\CheckInCollisionException;
@@ -34,7 +35,7 @@ class BackendCheckinTest extends FeatureTestCase
 
         $user            = User::factory()->create();
         $stationHannover = HafasHelpers::getStationById(8000152);
-        $departures      = HafasController::getDepartures(
+        $departures      = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $stationHannover,
             when:    Carbon::parse('2023-01-12 08:00'),
             type:    TravelType::EXPRESS,
@@ -65,7 +66,7 @@ class BackendCheckinTest extends FeatureTestCase
 
         $user       = User::factory()->create();
         $station    = HafasHelpers::getStationById(8000105);
-        $departures = HafasController::getDepartures(
+        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $station,
             when:    Carbon::parse('2023-01-12 08:00'),
             type:    TravelType::EXPRESS,
@@ -99,7 +100,7 @@ class BackendCheckinTest extends FeatureTestCase
 
         $user       = User::factory()->create();
         $station    = HafasHelpers::getStationById(8000105);
-        $departures = HafasController::getDepartures(
+        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $station,
             when:    Carbon::parse('2023-01-12 08:00'),
             type:    TravelType::EXPRESS,
@@ -207,7 +208,7 @@ class BackendCheckinTest extends FeatureTestCase
         // First: Get a train that's fine for our stuff
         // The 10:00 train actually quits at Südkreuz, but the 10:05 does not.
         $station    = HafasHelpers::getStationById(8089110);
-        $departures = HafasController::getDepartures(
+        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $station,
             when:    Carbon::parse('2023-01-16 10:00'),
         );
@@ -260,7 +261,7 @@ class BackendCheckinTest extends FeatureTestCase
 
         $user                    = User::factory()->create();
         $stationPlantagenPotsdam = HafasHelpers::getStationById(736165);
-        $departures              = HafasController::getDepartures(
+        $departures              = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $stationPlantagenPotsdam,
             when:    Carbon::parse('2023-01-16 10:00'),
             type:    TravelType::TRAM,
@@ -314,7 +315,7 @@ class BackendCheckinTest extends FeatureTestCase
 
         $user                    = User::factory()->create();
         $stationPlantagenPotsdam = HafasHelpers::getStationById(736165);
-        $departures              = HafasController::getDepartures(
+        $departures              = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $stationPlantagenPotsdam,
             when:    Carbon::parse('2023-01-16 10:00'),
         );
@@ -367,7 +368,7 @@ class BackendCheckinTest extends FeatureTestCase
 
         $user       = User::factory()->create();
         $station    = HafasHelpers::getStationById(102932); // Flughafen Terminal 1, Frankfurt a.M.
-        $departures = HafasController::getDepartures(
+        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $station,
             when:    Carbon::parse('2023-01-16 10:00'),
             type:    TravelType::BUS,
@@ -408,7 +409,7 @@ class BackendCheckinTest extends FeatureTestCase
 
         $user       = User::factory()->create();
         $station    = HafasHelpers::getStationById(self::FRANKFURT_HBF['id']);
-        $departures = HafasController::getDepartures(
+        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station: $station,
             when:    Carbon::parse('2023-01-16 08:00'),
             type:    TravelType::EXPRESS,

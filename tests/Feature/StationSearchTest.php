@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\Backend\Transport\StationController;
@@ -61,7 +62,7 @@ class StationSearchTest extends FeatureTestCase
                                                              ["distance" => 421]
                                                          )])]);
 
-        $result = HafasController::getNearbyStations(
+        $result = (new DataProviderFactory)->create(HafasController::class)::getNearbyStations(
             self::HANNOVER_HBF['location']['latitude'],
             self::HANNOVER_HBF['location']['longitude']);
 
@@ -73,7 +74,7 @@ class StationSearchTest extends FeatureTestCase
         Http::fake(Http::response(status: 503));
 
         $this->assertThrows(function() {
-            HafasController::getNearbyStations(
+            (new DataProviderFactory)->create(HafasController::class)::getNearbyStations(
                 self::HANNOVER_HBF['location']['latitude'],
                 self::HANNOVER_HBF['location']['longitude']);
         }, HafasException::class);

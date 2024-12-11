@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\v1;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Http\Controllers\Backend\EventController as EventBackend;
 use App\Http\Controllers\StatusController;
@@ -250,7 +251,7 @@ class EventController extends Controller
                                         ]);
 
         if (isset($validated['nearestStation'])) {
-            $stations = HafasController::getStations($validated['nearestStation'], 1);
+            $stations = (new DataProviderFactory)->create(HafasController::class)::getStations($validated['nearestStation'], 1);
             if (count($stations) === 0) {
                 return $this->sendError(error: __('events.request.station_not_found'), code: 400);
             }

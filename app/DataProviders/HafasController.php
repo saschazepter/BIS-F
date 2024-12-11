@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Log;
 use JsonException;
 use PDOException;
 
-abstract class HafasController extends Controller implements DbRestInterface
+class HafasController extends Controller implements DataProviderInterface
 {
     private static function getHttpClient(): PendingRequest {
         return Http::baseUrl(config('trwl.db_rest'))

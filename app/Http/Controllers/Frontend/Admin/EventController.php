@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Frontend\Admin;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Enum\EventRejectionReason;
 use App\Exceptions\HafasException;
@@ -147,7 +148,7 @@ class EventController extends Controller
         }
 
         if (isset($validated['nearest_station_name'])) {
-            $station = HafasController::getStations($validated['nearest_station_name'], 1)->first();
+            $station = (new DataProviderFactory)->create(HafasController::class)::getStations($validated['nearest_station_name'], 1)->first();
 
             if ($station === null) {
                 return back()->with('alert-danger', 'Die Station konnte nicht gefunden werden.');
@@ -187,7 +188,7 @@ class EventController extends Controller
 
         $station = null;
         if (isset($validated['nearest_station_name'])) {
-            $station = HafasController::getStations($validated['nearest_station_name'], 1)->first();
+            $station = (new DataProviderFactory)->create(HafasController::class)::getStations($validated['nearest_station_name'], 1)->first();
 
             if ($station === null) {
                 return back()->with('alert-danger', 'Die Station konnte nicht gefunden werden.');
@@ -219,7 +220,7 @@ class EventController extends Controller
         if (strlen($validated['nearest_station_name'] ?? '') === 0) {
             $validated['station_id'] = null;
         } elseif ($validated['nearest_station_name'] && $validated['nearest_station_name'] !== $event->station->name) {
-            $station = HafasController::getStations($validated['nearest_station_name'], 1)->first();
+            $station = (new DataProviderFactory)->create(HafasController::class)::getStations($validated['nearest_station_name'], 1)->first();
 
             if ($station === null) {
                 return back()->with('alert-danger', 'Die Station konnte nicht gefunden werden.');
