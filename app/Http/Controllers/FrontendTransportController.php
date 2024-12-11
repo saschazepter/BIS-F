@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\DataProviders\HafasController;
+use App\DataProviders\Trias;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\TransportController as TransportBackend;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +15,7 @@ class FrontendTransportController extends Controller
     public function TrainAutocomplete(string $station): JsonResponse {
         try {
             //todo: adapt data provider to users preferences
-            $provider                  = new TransportBackend(HafasController::class);
+            $provider                  = new TransportBackend(Trias::class);
             $trainAutocompleteResponse = $provider->getTrainStationAutocomplete($station);
             return response()->json($trainAutocompleteResponse);
         } catch (HafasException $e) {

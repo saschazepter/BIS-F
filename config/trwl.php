@@ -12,7 +12,7 @@ return [
     'mastodon_timeout_seconds'  => env("MASTODON_TIMEOUT_SECONDS", 5),
 
     # Brouter
-    'brouter'                  => env('BROUTER', true),
+    'brouter'                   => env('BROUTER', true),
     'brouter_url'               => env('BROUTER_URL', 'https://brouter.de/'),
     'brouter_timeout'           => env('BROUTER_TIMEOUT', 10),
 
@@ -24,6 +24,10 @@ return [
     # DB_REST
     'db_rest'                   => env('DB_REST', 'https://v5.db.transport.rest/'),
     'db_rest_timeout'           => env('DB_REST_TIMEOUT', 10),
+
+    # Stellwerk
+    'stellwerk'                 => env('STELLWERK', 'https://stellwerk.traewelling.de/'),
+    'stellwerk_timeout'         => env('STELLWERK_TIMEOUT', 10),
 
     # Points
     'base_points'               => [

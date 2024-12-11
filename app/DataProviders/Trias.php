@@ -23,12 +23,12 @@ use Illuminate\Support\Facades\Log;
 use JsonException;
 use PDOException;
 
-class HafasController extends Controller implements DataProviderInterface
+class Trias extends Controller implements DataProviderInterface
 {
 
     private function client(): PendingRequest {
-        return Http::baseUrl(config('trwl.db_rest'))
-                   ->timeout(config('trwl.db_rest_timeout'));
+        return Http::baseUrl(config('trwl.stellwerk'))
+                   ->timeout(config('trwl.stellwerk'));
     }
 
     public function getStationByRilIdentifier(string $rilIdentifier): ?Station {
@@ -215,10 +215,11 @@ class HafasController extends Controller implements DataProviderInterface
                     continue;
                 }
                 $stationPayload[] = [
-                    'ibnr'      => $departure->stop->id,
+                    'ibnr'      => preg_replace('/\D/', '', $station['ibnr']), // Todo: how do we do this in the new system?
+                    //                    'ibnr'      => $departure->stop->id,
                     'name'      => $departure->stop->name,
-                    'latitude'  => $departure->stop?->location?->latitude,
-                    'longitude' => $departure->stop?->location?->longitude,
+                    'latitude'  => $departure->stop?->location?->latitude ?? 0, // todo: how do we do this in the new system?
+                    'longitude' => $departure->stop?->location?->longitude ?? 0, // todo: how do we do this in the new system?
                 ];
             }
             $stations = Repositories\StationRepository::upsertStations($stationPayload);

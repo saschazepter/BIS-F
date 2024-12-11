@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\API\v1;
 
-use App\DataProviders\HafasController;
+use App\DataProviders\Trias;
 use App\Dto\Transport\Station as StationDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
@@ -513,7 +513,7 @@ class TransportController extends Controller
      */
     public function getTrainStationAutocomplete(string $query): JsonResponse {
         try {
-            $trainAutocompleteResponse = (new TransportBackend(HafasController::class))->getTrainStationAutocomplete($query);
+            $trainAutocompleteResponse = (new TransportBackend(Trias::class))->getTrainStationAutocomplete($query);
             return $this->sendResponse($trainAutocompleteResponse);
         } catch (HafasException) {
             return $this->sendError("There has been an error with our data provider", 503);

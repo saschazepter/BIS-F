@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\DataProviders\HafasController;
 use App\DataProviders\HafasStopoverService;
+use App\DataProviders\Trias;
 use App\Exceptions\HafasException;
 use App\Models\Stopover;
 use Illuminate\Bus\Queueable;
@@ -27,6 +27,6 @@ class RefreshStopover implements ShouldQueue
      * @throws HafasException
      */
     public function handle(): void {
-        (new HafasStopoverService(HafasController::class))->refreshStopover($this->stopover);
+        (new HafasStopoverService(Trias::class))->refreshStopover($this->stopover);
     }
 }
