@@ -25,20 +25,20 @@ use PDOException;
 
 class HafasController extends Controller implements DataProviderInterface
 {
-    private static function getHttpClient(): PendingRequest {
+
+    private function client(): PendingRequest {
         return Http::baseUrl(config('trwl.db_rest'))
                    ->timeout(config('trwl.db_rest_timeout'));
     }
 
-    public static function getStationByRilIdentifier(string $rilIdentifier): ?Station {
+    public function getStationByRilIdentifier(string $rilIdentifier): ?Station {
         $station = Station::where('rilIdentifier', $rilIdentifier)->first();
         if ($station !== null) {
             return $station;
         }
 
         try {
-            $response = self::getHttpClient()
-                            ->get("/stations/$rilIdentifier");
+            $response = $this->client()->get("/stations/$rilIdentifier");
             if ($response->ok() && !empty($response->body()) && $response->body() !== '[]') {
                 $data    = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
                 $station = StationRepository::parseHafasStopObject($data);
@@ -49,29 +49,30 @@ class HafasController extends Controller implements DataProviderInterface
         return $station;
     }
 
-    public static function getStationsByFuzzyRilIdentifier(string $rilIdentifier): ?Collection {
+    public function getStationsByFuzzyRilIdentifier(string $rilIdentifier): ?Collection {
         $stations = Station::where('rilIdentifier', 'LIKE', "$rilIdentifier%")->orderBy('rilIdentifier')->get();
         if ($stations->count() > 0) {
             return $stations;
         }
-        return collect([self::getStationByRilIdentifier(rilIdentifier: $rilIdentifier)]);
+        return collect([$this->getStationByRilIdentifier(rilIdentifier: $rilIdentifier)]);
     }
 
     /**
      * @throws HafasException
      */
-    public static function getStations(string $query, int $results = 10): Collection {
+    public function getStations(string $query, int $results = 10): Collection {
         try {
-            $response = self::getHttpClient()
-                            ->get("/locations",
-                                  [
-                                      'query'     => $query,
-                                      'fuzzy'     => 'true',
-                                      'stops'     => 'true',
-                                      'addresses' => 'false',
-                                      'poi'       => 'false',
-                                      'results'   => $results
-                                  ]);
+            $response = $this->client()->get(
+                "/locations",
+                [
+                    'query'     => $query,
+                    'fuzzy'     => 'true',
+                    'stops'     => 'true',
+                    'addresses' => 'false',
+                    'poi'       => 'false',
+                    'results'   => $results
+                ]
+            );
 
             $data = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
             if (empty($data) || !$response->ok()) {
@@ -87,13 +88,16 @@ class HafasController extends Controller implements DataProviderInterface
     /**
      * @throws HafasException
      */
-    public static function getNearbyStations(float $latitude, float $longitude, int $results = 8): Collection {
+    public function getNearbyStations(float $latitude, float $longitude, int $results = 8): Collection {
         try {
-            $response = self::getHttpClient()->get("/stops/nearby", [
-                'latitude'  => $latitude,
-                'longitude' => $longitude,
-                'results'   => $results
-            ]);
+            $response = $this->client()->get(
+                "/stops/nearby",
+                [
+                    'latitude'  => $latitude,
+                    'longitude' => $longitude,
+                    'results'   => $results
+                ]
+            );
 
             if (!$response->ok()) {
                 throw new HafasException(__('messages.exception.generalHafas'));
@@ -117,14 +121,13 @@ class HafasController extends Controller implements DataProviderInterface
      * @throws HafasException
      * @throws JsonException
      */
-    public static function fetchDepartures(
+    private function fetchDepartures(
         Station    $station,
         Carbon     $when,
         int        $duration = 15,
         TravelType $type = null,
         bool       $skipTimeShift = false
     ) {
-        $client   = self::getHttpClient();
         $time     = $skipTimeShift ? $when : (clone $when)->shiftTimezone("Europe/Berlin");
         $query    = [
             'when'                       => $time->toIso8601String(),
@@ -140,7 +143,7 @@ class HafasController extends Controller implements DataProviderInterface
             HTT::TRAM->value             => FptfHelper::checkTravelType($type, TravelType::TRAM),
             HTT::TAXI->value             => FptfHelper::checkTravelType($type, TravelType::TAXI),
         ];
-        $response = $client->get('/stops/' . $station->ibnr . '/departures', $query);
+        $response = $this->client()->get('/stops/' . $station->ibnr . '/departures', $query);
 
         if (!$response->ok()) {
             throw new HafasException(__('messages.exception.generalHafas'));
@@ -159,7 +162,7 @@ class HafasController extends Controller implements DataProviderInterface
      * @return Collection
      * @throws HafasException
      */
-    public static function getDepartures(
+    public function getDepartures(
         Station    $station,
         Carbon     $when,
         int        $duration = 15,
@@ -169,7 +172,7 @@ class HafasController extends Controller implements DataProviderInterface
         try {
             $requestTime = is_null($station->time_offset) || $localtime
                 ? $when : (clone $when)->subHours($station->time_offset);
-            $data        = self::fetchDepartures(
+            $data        = $this->fetchDepartures(
                 $station,
                 $requestTime,
                 $duration,
@@ -188,14 +191,14 @@ class HafasController extends Controller implements DataProviderInterface
                             // Check if the timezone for this station is equal in its offset to Europe/Berlin.
                             // If so, fetch again **without** adjusting the timezone
                             if ($timezone === CarbonTimeZone::create("Europe/Berlin")->toOffsetName()) {
-                                $data = self::fetchDepartures($station, $when, $duration, $type, true);
+                                $data = $this->fetchDepartures($station, $when, $duration, $type, true);
 
                                 $station->shift_time = false;
                                 $station->save();
                                 break;
                             }
                             // if the timezone is not equal to Europe/Berlin, fetch the offset
-                            $data = self::fetchDepartures($station, (clone $when)->subHours($offset), $duration, $type);
+                            $data = $this->fetchDepartures($station, (clone $when)->subHours($offset), $duration, $type);
 
                             $station->time_offset = $offset;
                             $station->save();
@@ -236,8 +239,8 @@ class HafasController extends Controller implements DataProviderInterface
     /**
      * @throws HafasException|JsonException
      */
-    public static function fetchRawHafasTrip(string $tripId, string $lineName) {
-        $tripResponse = self::getHttpClient()->get("trips/" . rawurlencode($tripId), [
+    public function fetchRawHafasTrip(string $tripId, string $lineName) {
+        $tripResponse = $this->client()->get("trips/" . rawurlencode($tripId), [
             'lineName'  => $lineName,
             'polyline'  => 'true',
             'stopovers' => 'true'
@@ -265,8 +268,8 @@ class HafasController extends Controller implements DataProviderInterface
      * @return Trip
      * @throws HafasException|JsonException
      */
-    public static function fetchHafasTrip(string $tripID, string $lineName): Trip {
-        $tripJson    = self::fetchRawHafasTrip($tripID, $lineName);
+    public function fetchHafasTrip(string $tripID, string $lineName): Trip {
+        $tripJson    = $this->fetchRawHafasTrip($tripID, $lineName);
         $origin      = Repositories\StationRepository::parseHafasStopObject($tripJson->origin);
         $destination = Repositories\StationRepository::parseHafasStopObject($tripJson->destination);
         $operator    = null;

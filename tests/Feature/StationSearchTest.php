@@ -65,13 +65,16 @@ class StationSearchTest extends FeatureTestCase
         $this->assertEquals(Station::find($expected->id)->name, $station->name);
     }
 
+    /**
+     * @throws HafasException
+     */
     public function testGetNearbyStations(): void {
         Http::fake(["*/stops/nearby*" => Http::response([array_merge(
                                                              self::HANNOVER_HBF,
                                                              ["distance" => 421]
                                                          )])]);
 
-        $result = $this->dataProvider::getNearbyStations(
+        $result = $this->dataProvider->getNearbyStations(
             self::HANNOVER_HBF['location']['latitude'],
             self::HANNOVER_HBF['location']['longitude']);
 
@@ -83,7 +86,7 @@ class StationSearchTest extends FeatureTestCase
         Http::fake(Http::response(status: 503));
 
         $this->assertThrows(function() {
-            $this->dataProvider::getNearbyStations(
+            $this->dataProvider->getNearbyStations(
                 self::HANNOVER_HBF['location']['latitude'],
                 self::HANNOVER_HBF['location']['longitude']);
         }, HafasException::class);

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\DataProviders\DataProviderFactory;
 use App\DataProviders\DataProviderInterface;
-use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
 use App\Http\Resources\StationResource;
 use App\Models\Checkin;
@@ -38,11 +37,11 @@ class TransportController extends Controller
      */
     public function getTrainStationAutocomplete(string $query): Collection {
         if (!is_numeric($query) && strlen($query) <= 5 && ctype_upper($query)) {
-            $stations = (new DataProviderFactory)->create(HafasController::class)::getStationsByFuzzyRilIdentifier(rilIdentifier: $query);
+            $stations = $this->dataProvider->getStationsByFuzzyRilIdentifier(rilIdentifier: $query);
         }
 
         if (!isset($stations) || $stations[0] === null) {
-            $stations = (new DataProviderFactory)->create(HafasController::class)::getStations($query);
+            $stations = $this->dataProvider->getStations($query);
         }
 
         return $stations->map(function(Station $station) {

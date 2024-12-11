@@ -28,9 +28,10 @@ class StationRepository
             $data['rilIdentifier'] = $hafasStop->ril100;
         }
 
-        return Station::updateOrCreate([
-                                           'ibnr' => $hafasStop->id
-                                       ], $data);
+        return Station::updateOrCreate(
+            ['ibnr' => $hafasStop->id],
+            $data
+        );
     }
 
     public static function parseHafasStops(array $hafasResponse): Collection {

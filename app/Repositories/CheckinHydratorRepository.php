@@ -33,7 +33,7 @@ class CheckinHydratorRepository
             $trip = Trip::where('id', $tripID)->where('linename', $lineName)->first();
         }
         $trip = $trip ?? Trip::where('trip_id', $tripID)->where('linename', $lineName)->first();
-        return $trip ?? $dataProvider::fetchHafasTrip($tripID, $lineName);
+        return $trip ?? $dataProvider->fetchHafasTrip($tripID, $lineName);
     }
 
     public function findEvent(int $id): ?Event {
