@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\API\v1;
 
-use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Dto\Transport\Station as StationDto;
 use App\Enum\Business;
@@ -154,7 +153,7 @@ class TransportController extends Controller
         $station   = Station::findOrFail($stationId);
 
         try {
-            $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
+            $departures = $this->dataProvider::getDepartures(
                 station:   $station,
                 when:      $timestamp,
                 type:      TravelType::tryFrom($validated['travelType'] ?? null),
@@ -312,7 +311,7 @@ class TransportController extends Controller
                                         ]);
 
         try {
-            $nearestStation = (new DataProviderFactory)->create(HafasController::class)::getNearbyStations(
+            $nearestStation = $this->dataProvider::getNearbyStations(
                 latitude:  $validated['latitude'],
                 longitude: $validated['longitude'],
                 results:   1
@@ -514,7 +513,7 @@ class TransportController extends Controller
      */
     public function getTrainStationAutocomplete(string $query): JsonResponse {
         try {
-            $trainAutocompleteResponse = TransportBackend::getTrainStationAutocomplete($query);
+            $trainAutocompleteResponse = (new TransportBackend(HafasController::class))->getTrainStationAutocomplete($query);
             return $this->sendResponse($trainAutocompleteResponse);
         } catch (HafasException) {
             return $this->sendError("There has been an error with our data provider", 503);

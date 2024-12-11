@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\API\v1;
 
+use App\DataProviders\DataProviderFactory;
+use App\DataProviders\DataProviderInterface;
+use App\DataProviders\HafasController;
 use App\Models\OAuthClient;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -96,6 +99,13 @@ use Throwable;
  */
 class Controller extends \App\Http\Controllers\Controller
 {
+    protected DataProviderInterface $dataProvider;
+
+    public function __construct() {
+        // todo: set data provider based on user settings
+        $this->dataProvider = (new DataProviderFactory())->create(HafasController::class);
+    }
+
     public function sendResponse(
         mixed $data = null,
         int   $code = 200,

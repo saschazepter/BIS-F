@@ -26,11 +26,14 @@ class CheckinHydratorRepository
      * @throws JsonException
      */
     public function getHafasTrip(string $tripID, string $lineName): Trip {
+        // todo: create trip IDs with a prefix, to distinguish between different data providers
+        $dataProvider = (new DataProviderFactory)->create(HafasController::class);
+
         if (is_numeric($tripID)) {
             $trip = Trip::where('id', $tripID)->where('linename', $lineName)->first();
         }
         $trip = $trip ?? Trip::where('trip_id', $tripID)->where('linename', $lineName)->first();
-        return $trip ?? (new DataProviderFactory)->create(HafasController::class)::fetchHafasTrip($tripID, $lineName);
+        return $trip ?? $dataProvider::fetchHafasTrip($tripID, $lineName);
     }
 
     public function findEvent(int $id): ?Event {
