@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Log;
 use JsonException;
 use PDOException;
 
-class HafasController extends Controller implements DataProviderInterface
+class Hafas extends Controller implements DataProviderInterface
 {
 
     private function client(): PendingRequest {

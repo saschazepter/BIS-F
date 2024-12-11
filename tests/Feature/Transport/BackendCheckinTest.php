@@ -4,7 +4,7 @@ namespace Tests\Feature\Transport;
 
 use App\DataProviders\DataProviderFactory;
 use App\DataProviders\DataProviderInterface;
-use App\DataProviders\HafasController;
+use App\DataProviders\Hafas;
 use App\Enum\TravelType;
 use App\Exceptions\CheckInCollisionException;
 use App\Exceptions\HafasException;
@@ -27,7 +27,7 @@ class BackendCheckinTest extends FeatureTestCase
 
     public function setUp(): void {
         parent::setUp();
-        $this->dataProvider = (new DataProviderFactory())->create(HafasController::class);
+        $this->dataProvider = (new DataProviderFactory())->create(Hafas::class);
     }
 
     use RefreshDatabase;

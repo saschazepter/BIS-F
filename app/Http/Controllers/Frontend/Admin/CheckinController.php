@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Frontend\Admin;
 
 use App\DataProviders\DataProviderFactory;
-use App\DataProviders\HafasController;
+use App\DataProviders\Hafas;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
 use App\Enum\TravelType;
@@ -36,7 +36,7 @@ class CheckinController
      * @deprecated adapt admin panel to api endpoints
      */
     public static function lookupStation(string|int $query): Station {
-        $dataProvider = (new DataProviderFactory)->create(HafasController::class);
+        $dataProvider = (new DataProviderFactory)->create(Hafas::class);
 
         //Lookup by station ibnr
         if (is_numeric($query)) {
@@ -93,7 +93,7 @@ class CheckinController
             'next' => $when->clone()->addMinutes(15)
         ];
 
-        $departures = (new DataProviderFactory)->create(HafasController::class)->getDepartures(
+        $departures = (new DataProviderFactory)->create(Hafas::class)->getDepartures(
             station:   $station,
             when:      $when,
             type:      $travelType,

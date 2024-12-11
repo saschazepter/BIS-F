@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\DataProviders\DataProviderFactory;
 use App\DataProviders\DataProviderInterface;
-use App\DataProviders\HafasController;
+use App\DataProviders\Hafas;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\Frontend\Admin\CheckinController;
 use App\Models\Station;
@@ -19,7 +19,7 @@ class StationSearchTest extends FeatureTestCase
 
     public function setUp(): void {
         parent::setUp();
-        $this->dataProvider = (new DataProviderFactory())->create(HafasController::class);
+        $this->dataProvider = (new DataProviderFactory())->create(Hafas::class);
     }
 
 
