@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
 use App\Models\Event;
@@ -29,7 +30,7 @@ class CheckinHydratorRepository
             $trip = Trip::where('id', $tripID)->where('linename', $lineName)->first();
         }
         $trip = $trip ?? Trip::where('trip_id', $tripID)->where('linename', $lineName)->first();
-        return $trip ?? HafasController::fetchHafasTrip($tripID, $lineName);
+        return $trip ?? (new DataProviderFactory)->create(HafasController::class)::fetchHafasTrip($tripID, $lineName);
     }
 
     public function findEvent(int $id): ?Event {

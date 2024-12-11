@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\DataProviders\HafasStopoverService;
 use App\Enum\TripSource;
@@ -54,7 +55,7 @@ class RefreshCurrentTrips extends Command
                 $this->info('Refreshing trip ' . $trip->trip_id . ' (' . $trip->linename . ')...');
                 $trip->update(['last_refreshed' => now()]);
 
-                $rawHafas      = HafasController::fetchRawHafasTrip($trip->trip_id, $trip->linename);
+                $rawHafas      = (new DataProviderFactory)->create(HafasController::class)::fetchRawHafasTrip($trip->trip_id, $trip->linename);
                 $updatedCounts = HafasStopoverService::refreshStopovers($rawHafas);
                 $this->info('Updated ' . $updatedCounts->stopovers . ' stopovers.');
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Backend\Transport;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\Controller;
@@ -39,14 +40,14 @@ class StationController extends Controller
 
         //Lookup by ril identifier
         if (!is_numeric($query) && strlen($query) <= 5 && ctype_upper($query)) {
-            $station = HafasController::getStationByRilIdentifier($query);
+            $station = (new DataProviderFactory)->create(HafasController::class)::getStationByRilIdentifier($query);
             if ($station !== null) {
                 return $station;
             }
         }
 
         //Lookup HAFAS
-        $station = HafasController::getStations(query: $query, results: 1)->first();
+        $station = (new DataProviderFactory)->create(HafasController::class)::getStations(query: $query, results: 1)->first();
         if ($station !== null) {
             return $station;
         }

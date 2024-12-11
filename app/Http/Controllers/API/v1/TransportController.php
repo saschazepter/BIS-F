@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\v1;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Dto\Transport\Station as StationDto;
 use App\Enum\Business;
@@ -153,7 +154,7 @@ class TransportController extends Controller
         $station   = Station::findOrFail($stationId);
 
         try {
-            $departures = HafasController::getDepartures(
+            $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
                 station:   $station,
                 when:      $timestamp,
                 type:      TravelType::tryFrom($validated['travelType'] ?? null),
@@ -311,7 +312,7 @@ class TransportController extends Controller
                                         ]);
 
         try {
-            $nearestStation = HafasController::getNearbyStations(
+            $nearestStation = (new DataProviderFactory)->create(HafasController::class)::getNearbyStations(
                 latitude:  $validated['latitude'],
                 longitude: $validated['longitude'],
                 results:   1

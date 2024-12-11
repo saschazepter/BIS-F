@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataProviders\DataProviderFactory;
 use App\DataProviders\HafasController;
 use App\Enum\TravelType;
 use App\Exceptions\HafasException;
@@ -30,11 +31,11 @@ class TransportController extends Controller
      */
     public static function getTrainStationAutocomplete(string $query): Collection {
         if (!is_numeric($query) && strlen($query) <= 5 && ctype_upper($query)) {
-            $stations = HafasController::getStationsByFuzzyRilIdentifier(rilIdentifier: $query);
+            $stations = (new DataProviderFactory)->create(HafasController::class)::getStationsByFuzzyRilIdentifier(rilIdentifier: $query);
         }
 
         if (!isset($stations) || $stations[0] === null) {
-            $stations = HafasController::getStations($query);
+            $stations = (new DataProviderFactory)->create(HafasController::class)::getStations($query);
         }
 
         return $stations->map(function(Station $station) {
@@ -50,7 +51,7 @@ class TransportController extends Controller
      *
      * @return array
      * @throws HafasException
-     * @deprecated use HafasController::getDepartures(...) directly instead (-> less overhead)
+     * @deprecated use DataProviderInterface::getDepartures(...) directly instead (-> less overhead)
      *
      * @api        v1
      */
@@ -74,7 +75,7 @@ class TransportController extends Controller
             'next' => $when->clone()->addMinutes(15)
         ];
 
-        $departures = HafasController::getDepartures(
+        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
             station:   $station,
             when:      $when,
             type:      $travelType,
