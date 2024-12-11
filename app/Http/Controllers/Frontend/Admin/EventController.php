@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Frontend\Admin;
 
+use App\DataProviders\HafasController;
 use App\Enum\EventRejectionReason;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\Backend\Admin\EventController as AdminEventBackend;
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\HafasController;
 use App\Models\Event;
 use App\Models\EventSuggestion;
 use App\Notifications\EventSuggestionProcessed;

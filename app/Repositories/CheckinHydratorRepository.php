@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
+use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
-use App\Http\Controllers\HafasController;
 use App\Models\Event;
 use App\Models\Station;
 use App\Models\Stopover;

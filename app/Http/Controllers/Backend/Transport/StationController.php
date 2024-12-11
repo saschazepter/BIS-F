@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Backend\Transport;
 
+use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\HafasController;
 use App\Http\Resources\StationResource;
 use App\Models\Checkin;
 use App\Models\Station;

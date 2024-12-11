@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Transport;
 
+use App\DataProviders\HafasController;
 use App\Enum\TravelType;
 use App\Exceptions\CheckInCollisionException;
 use App\Exceptions\HafasException;
 use App\Exceptions\StationNotOnTripException;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
-use App\Http\Controllers\HafasController;
 use App\Http\Controllers\TransportController;
 use App\Models\Stopover;
 use App\Models\User;

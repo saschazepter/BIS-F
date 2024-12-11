@@ -2,11 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\DataProviders\HafasController;
 use App\Enum\TripSource;
 use App\Exceptions\HafasException;
-use App\Http\Controllers\HafasController;
-use App\Models\Trip;
 use App\Models\Checkin;
+use App\Models\Trip;
 use Illuminate\Console\Command;
 use PDOException;
 
@@ -23,22 +23,22 @@ class RefreshCurrentTrips extends Command
                      ->join('train_stopovers as origin_stopovers', 'origin_stopovers.id', '=', 'train_checkins.origin_stopover_id')
                      ->join('train_stopovers as destination_stopovers', 'destination_stopovers.id', '=', 'train_checkins.destination_stopover_id')
                      ->where(function($query) {
-                              $query->where('destination_stopovers.arrival_planned', '>=', now()->subMinutes(20))
-                                    ->orWhere('destination_stopovers.arrival_real', '>=', now()->subMinutes(20));
-                          })
+                         $query->where('destination_stopovers.arrival_planned', '>=', now()->subMinutes(20))
+                               ->orWhere('destination_stopovers.arrival_real', '>=', now()->subMinutes(20));
+                     })
                      ->where(function($query) {
-                              $query->where('origin_stopovers.departure_planned', '<=', now()->addMinutes(20))
-                                    ->orWhere('origin_stopovers.departure_real', '<=', now()->addMinutes(20));
-                          })
+                         $query->where('origin_stopovers.departure_planned', '<=', now()->addMinutes(20))
+                               ->orWhere('origin_stopovers.departure_real', '<=', now()->addMinutes(20));
+                     })
                      ->where(function($query) {
-                              $query->where('hafas_trips.last_refreshed', '<', now()->subMinutes(5))
-                                    ->orWhereNull('hafas_trips.last_refreshed');
-                          })
-                          ->where('hafas_trips.source', TripSource::HAFAS->value)
-                          ->select('hafas_trips.*')
-                          ->distinct()
-                          ->orderBy('hafas_trips.last_refreshed')
-                          ->get();
+                         $query->where('hafas_trips.last_refreshed', '<', now()->subMinutes(5))
+                               ->orWhereNull('hafas_trips.last_refreshed');
+                     })
+                     ->where('hafas_trips.source', TripSource::HAFAS->value)
+                     ->select('hafas_trips.*')
+                     ->distinct()
+                     ->orderBy('hafas_trips.last_refreshed')
+                     ->get();
 
         if ($trips->isEmpty()) {
             $this->warn('No trips to be refreshed');
@@ -53,7 +53,7 @@ class RefreshCurrentTrips extends Command
                 $this->info('Refreshing trip ' . $trip->trip_id . ' (' . $trip->linename . ')...');
                 $trip->update(['last_refreshed' => now()]);
 
-                $rawHafas    = HafasController::fetchRawHafasTrip($trip->trip_id, $trip->linename);
+                $rawHafas      = HafasController::fetchRawHafasTrip($trip->trip_id, $trip->linename);
                 $updatedCounts = HafasController::refreshStopovers($rawHafas);
                 $this->info('Updated ' . $updatedCounts->stopovers . ' stopovers.');
 

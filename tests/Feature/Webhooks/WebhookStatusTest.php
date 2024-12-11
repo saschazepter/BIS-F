@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Webhooks;
 
+use App\DataProviders\HafasController;
 use App\Dto\Internal\CheckInRequestDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
 use App\Enum\WebhookEvent;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
-use App\Http\Controllers\HafasController;
 use App\Http\Controllers\StatusController;
 use App\Http\Resources\StatusResource;
 use App\Jobs\MonitoredCallWebhookJob;
@@ -34,7 +34,7 @@ class WebhookStatusTest extends FeatureTestCase
         Bus::assertDispatched(function(MonitoredCallWebhookJob $job) use ($status) {
             assertEquals([
                              'event' => WebhookEvent::CHECKIN_CREATE->value,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       'status' => new StatusResource($status),
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      'status' => new StatusResource($status),
                          ], $job->payload);
             return true;
         });
@@ -61,7 +61,7 @@ class WebhookStatusTest extends FeatureTestCase
                 $job->payload['event']
             );
             assertEquals($status->id, $job->payload['status']['id']);
-            assertEquals('New Example Body', $job->payload['status']['body'],);
+            assertEquals('New Example Body', $job->payload['status']['body']);
             return true;
         });
     }
@@ -93,14 +93,14 @@ class WebhookStatusTest extends FeatureTestCase
         $user   = User::factory()->create();
         $client = $this->createWebhookClient($user);
         $this->createWebhook($user, $client, [WebhookEvent::CHECKIN_UPDATE]);
-        $status    = $this->createStatus($user);
-        $checkin   = $status->checkin()->first();
-        $trip = TrainCheckinController::getHafasTrip(
+        $status  = $this->createStatus($user);
+        $checkin = $status->checkin()->first();
+        $trip    = TrainCheckinController::getHafasTrip(
             tripId:   self::TRIP_ID,
             lineName: self::ICE802['line']['name'],
             startId:  self::FRANKFURT_HBF['id']
         );
-        $aachen    = $trip->stopovers->where('station.ibnr', self::AACHEN_HBF['id'])->first();
+        $aachen  = $trip->stopovers->where('station.ibnr', self::AACHEN_HBF['id'])->first();
         TrainCheckinController::changeDestination($checkin, $aachen);
 
         Bus::assertDispatched(function(MonitoredCallWebhookJob $job) use ($status) {

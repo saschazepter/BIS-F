@@ -1,11 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\DataProviders;
 
+use App\DataProviders\Repositories\StationRepository;
 use App\Enum\HafasTravelType as HTT;
 use App\Enum\TravelType;
 use App\Enum\TripSource;
 use App\Exceptions\HafasException;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\TransportController;
 use App\Models\HafasOperator;
 use App\Models\Station;
 use App\Models\Stopover;
@@ -21,7 +24,7 @@ use JsonException;
 use PDOException;
 use stdClass;
 
-abstract class HafasController extends Controller
+abstract class HafasController extends Controller implements DbRestInterface
 {
     public static function getHttpClient(): PendingRequest {
         return Http::baseUrl(config('trwl.db_rest'))
@@ -36,18 +39,11 @@ abstract class HafasController extends Controller
         try {
             $response = self::getHttpClient()
                             ->get("/stations/$rilIdentifier");
-            if (!$response->ok()) {
+            if (!$response->ok() || empty($response->body()) || $response->body() === '[]') {
                 return null;
             }
             $data = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
-            return Station::updateOrCreate([
-                                               'ibnr' => $data->id
-                                           ], [
-                                               'rilIdentifier' => $data->ril100,
-                                               'name'          => $data->name,
-                                               'latitude'      => $data->location->latitude,
-                                               'longitude'     => $data->location->longitude
-                                           ]);
+            return StationRepository::parseHafasStopObject($data);
         } catch (Exception $exception) {
             report($exception);
         }
@@ -83,52 +79,10 @@ abstract class HafasController extends Controller
                 return Collection::empty();
             }
 
-            return self::parseHafasStops($data);
+            return Repositories\StationRepository::parseHafasStops($data);
         } catch (JsonException $exception) {
             throw new HafasException($exception->getMessage());
         }
-    }
-
-    /**
-     * @param stdClass $hafasStop
-     *
-     * @return Station
-     * @throws PDOException
-     */
-    public static function parseHafasStopObject(stdClass $hafasStop): Station {
-        return Station::updateOrCreate([
-                                           'ibnr' => $hafasStop->id
-                                       ], [
-                                           'name'      => $hafasStop->name,
-                                           'latitude'  => $hafasStop->location?->latitude,
-                                           'longitude' => $hafasStop->location?->longitude,
-                                       ]);
-    }
-
-    private static function parseHafasStops(array $hafasResponse): Collection {
-        $payload = [];
-        foreach ($hafasResponse as $hafasStation) {
-            $payload[] = [
-                'ibnr'      => $hafasStation->id,
-                'name'      => $hafasStation->name,
-                'latitude'  => $hafasStation?->location?->latitude,
-                'longitude' => $hafasStation?->location?->longitude,
-            ];
-        }
-        return self::upsertStations($payload);
-    }
-
-    private static function upsertStations(array $payload) {
-        $ibnrs = array_column($payload, 'ibnr');
-        if (empty($ibnrs)) {
-            return new Collection();
-        }
-        Station::upsert($payload, ['ibnr'], ['name', 'latitude', 'longitude']);
-        return Station::whereIn('ibnr', $ibnrs)->get()
-                      ->sortBy(function(Station $station) use ($ibnrs) {
-                          return array_search($station->ibnr, $ibnrs);
-                      })
-                      ->values();
     }
 
     /**
@@ -147,7 +101,7 @@ abstract class HafasController extends Controller
             }
 
             $data     = json_decode($response->getBody()->getContents(), false, 512, JSON_THROW_ON_ERROR);
-            $stations = self::parseHafasStops($data);
+            $stations = Repositories\StationRepository::parseHafasStops($data);
 
             foreach ($data as $hafasStation) {
                 $station           = $stations->where('ibnr', $hafasStation->id)->first();
@@ -176,16 +130,16 @@ abstract class HafasController extends Controller
         $query    = [
             'when'                       => $time->toIso8601String(),
             'duration'                   => $duration,
-            HTT::NATIONAL_EXPRESS->value => self::checkTravelType($type, TravelType::EXPRESS),
-            HTT::NATIONAL->value         => self::checkTravelType($type, TravelType::EXPRESS),
-            HTT::REGIONAL_EXP->value     => self::checkTravelType($type, TravelType::EXPRESS),
-            HTT::REGIONAL->value         => self::checkTravelType($type, TravelType::REGIONAL),
-            HTT::SUBURBAN->value         => self::checkTravelType($type, TravelType::SUBURBAN),
-            HTT::BUS->value              => self::checkTravelType($type, TravelType::BUS),
-            HTT::FERRY->value            => self::checkTravelType($type, TravelType::FERRY),
-            HTT::SUBWAY->value           => self::checkTravelType($type, TravelType::SUBWAY),
-            HTT::TRAM->value             => self::checkTravelType($type, TravelType::TRAM),
-            HTT::TAXI->value             => self::checkTravelType($type, TravelType::TAXI),
+            HTT::NATIONAL_EXPRESS->value => FptfHelper::checkTravelType($type, TravelType::EXPRESS),
+            HTT::NATIONAL->value         => FptfHelper::checkTravelType($type, TravelType::EXPRESS),
+            HTT::REGIONAL_EXP->value     => FptfHelper::checkTravelType($type, TravelType::EXPRESS),
+            HTT::REGIONAL->value         => FptfHelper::checkTravelType($type, TravelType::REGIONAL),
+            HTT::SUBURBAN->value         => FptfHelper::checkTravelType($type, TravelType::SUBURBAN),
+            HTT::BUS->value              => FptfHelper::checkTravelType($type, TravelType::BUS),
+            HTT::FERRY->value            => FptfHelper::checkTravelType($type, TravelType::FERRY),
+            HTT::SUBWAY->value           => FptfHelper::checkTravelType($type, TravelType::SUBWAY),
+            HTT::TRAM->value             => FptfHelper::checkTravelType($type, TravelType::TRAM),
+            HTT::TAXI->value             => FptfHelper::checkTravelType($type, TravelType::TAXI),
         ];
         $response = $client->get('/stops/' . $station->ibnr . '/departures', $query);
 
@@ -194,10 +148,6 @@ abstract class HafasController extends Controller
         }
 
         return json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
-    }
-
-    public static function checkTravelType(?TravelType $type, TravelType $travelType): string {
-        return (is_null($type) || $type === $travelType) ? 'true' : 'false';
     }
 
     /**
@@ -269,7 +219,7 @@ abstract class HafasController extends Controller
                     'longitude' => $departure->stop?->location?->longitude,
                 ];
             }
-            $stations = self::upsertStations($stationPayload);
+            $stations = Repositories\StationRepository::upsertStations($stationPayload);
 
             //Then match the stations to the departures
             $departures = collect();
@@ -331,14 +281,7 @@ abstract class HafasController extends Controller
         }
 
         $data = json_decode($response->body());
-        return Station::updateOrCreate([
-                                           'ibnr' => $data->id
-                                       ], [
-                                           'name'      => $data->name,
-                                           'latitude'  => $data->location->latitude,
-                                           'longitude' => $data->location->longitude
-                                       ]);
-
+        return StationRepository::parseHafasStopObject($data);
     }
 
     /**
@@ -375,8 +318,8 @@ abstract class HafasController extends Controller
      */
     public static function fetchHafasTrip(string $tripID, string $lineName): Trip {
         $tripJson    = self::fetchRawHafasTrip($tripID, $lineName);
-        $origin      = self::parseHafasStopObject($tripJson->origin);
-        $destination = self::parseHafasStopObject($tripJson->destination);
+        $origin      = Repositories\StationRepository::parseHafasStopObject($tripJson->origin);
+        $destination = Repositories\StationRepository::parseHafasStopObject($tripJson->destination);
         $operator    = null;
 
         if (isset($tripJson->line->operator->id)) {
@@ -424,7 +367,7 @@ abstract class HafasController extends Controller
                 'longitude' => $stopover->stop->location?->longitude,
             ];
         }
-        $stations = self::upsertStations($payload);
+        $stations = Repositories\StationRepository::upsertStations($payload);
 
         foreach ($tripJson->stopovers as $stopover) {
             //TODO: make this better 🤯
@@ -487,7 +430,7 @@ abstract class HafasController extends Controller
                 continue; // No realtime data present for this stopover, keep existing data
             }
 
-            $stop             = self::parseHafasStopObject($stopover->stop);
+            $stop             = Repositories\StationRepository::parseHafasStopObject($stopover->stop);
             $arrivalPlanned   = Carbon::parse($stopover->plannedArrival)->tz(config('app.timezone'));
             $departurePlanned = Carbon::parse($stopover->plannedDeparture)->tz(config('app.timezone'));
 

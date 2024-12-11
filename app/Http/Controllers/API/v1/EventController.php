@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\API\v1;
 
+use App\DataProviders\HafasController;
 use App\Http\Controllers\Backend\EventController as EventBackend;
-use App\Http\Controllers\HafasController;
 use App\Http\Controllers\StatusController;
 use App\Http\Resources\EventDetailsResource;
 use App\Http\Resources\EventResource;
