@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\Backend\Transport\StationController;
-use App\Http\Controllers\HafasController;
 use App\Models\Station;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,7 +66,7 @@ class StationSearchTest extends FeatureTestCase
             self::HANNOVER_HBF['location']['longitude']);
 
         $this->assertEquals(self::HANNOVER_HBF['name'], $result[0]->name);
-        $this->assertEquals(421, $result[0]->distance,);
+        $this->assertEquals(421, $result[0]->distance);
     }
 
     public function testGetNearbyStationFails(): void {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataProviders\HafasController;
 use App\Enum\TravelType;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\Backend\Transport\StationController;
