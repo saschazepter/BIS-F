@@ -20,7 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\Passport;
 use Tests\ApiTestCase;
-use Tests\Helpers\CheckinRequestTestHydrator;
+use Tests\TestHelpers\CheckinRequestTestHydrator;
 
 class NotificationsTest extends ApiTestCase
 {

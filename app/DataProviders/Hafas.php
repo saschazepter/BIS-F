@@ -2,7 +2,7 @@
 
 namespace App\DataProviders;
 
-use App\DataProviders\Repositories\StationRepository;
+use App\DataProviders\Repositories\TriasStationRepository;
 use App\Enum\HafasTravelType as HTT;
 use App\Enum\TravelType;
 use App\Enum\TripSource;
@@ -41,7 +41,7 @@ class Hafas extends Controller implements DataProviderInterface
             $response = $this->client()->get("/stations/$rilIdentifier");
             if ($response->ok() && !empty($response->body()) && $response->body() !== '[]') {
                 $data    = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
-                $station = StationRepository::parseHafasStopObject($data);
+                $station = TriasStationRepository::parseHafasStopObject($data);
             }
         } catch (Exception $exception) {
             report($exception);
@@ -79,7 +79,7 @@ class Hafas extends Controller implements DataProviderInterface
                 return Collection::empty();
             }
 
-            return Repositories\StationRepository::parseHafasStops($data);
+            return Repositories\TriasStationRepository::parseHafasStops($data);
         } catch (JsonException $exception) {
             throw new HafasException($exception->getMessage());
         }
@@ -104,7 +104,7 @@ class Hafas extends Controller implements DataProviderInterface
             }
 
             $data     = json_decode($response->getBody()->getContents(), false, 512, JSON_THROW_ON_ERROR);
-            $stations = Repositories\StationRepository::parseHafasStops($data);
+            $stations = Repositories\TriasStationRepository::parseHafasStops($data);
 
             foreach ($data as $hafasStation) {
                 $station           = $stations->where('ibnr', $hafasStation->id)->first();
@@ -221,7 +221,7 @@ class Hafas extends Controller implements DataProviderInterface
                     'longitude' => $departure->stop?->location?->longitude,
                 ];
             }
-            $stations = Repositories\StationRepository::upsertStations($stationPayload);
+            $stations = Repositories\TriasStationRepository::upsertStations($stationPayload);
 
             //Then match the stations to the departures
             $departures = collect();
@@ -270,8 +270,8 @@ class Hafas extends Controller implements DataProviderInterface
      */
     public function fetchHafasTrip(string $tripID, string $lineName): Trip {
         $tripJson    = $this->fetchRawHafasTrip($tripID, $lineName);
-        $origin      = Repositories\StationRepository::parseHafasStopObject($tripJson->origin);
-        $destination = Repositories\StationRepository::parseHafasStopObject($tripJson->destination);
+        $origin      = Repositories\TriasStationRepository::parseHafasStopObject($tripJson->origin);
+        $destination = Repositories\TriasStationRepository::parseHafasStopObject($tripJson->destination);
         $operator    = null;
 
         if (isset($tripJson->line->operator->id)) {
@@ -319,7 +319,7 @@ class Hafas extends Controller implements DataProviderInterface
                 'longitude' => $stopover->stop->location?->longitude,
             ];
         }
-        $stations = Repositories\StationRepository::upsertStations($payload);
+        $stations = Repositories\TriasStationRepository::upsertStations($payload);
 
         foreach ($tripJson->stopovers as $stopover) {
             //TODO: make this better 🤯

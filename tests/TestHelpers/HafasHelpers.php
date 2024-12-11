@@ -2,7 +2,7 @@
 
 namespace Tests\TestHelpers;
 
-use App\DataProviders\Repositories\StationRepository;
+use App\DataProviders\Repositories\TriasStationRepository;
 use App\Exceptions\HafasException;
 use App\Models\Station;
 use Illuminate\Support\Facades\Http;
@@ -41,6 +41,6 @@ class HafasHelpers
         }
 
         $data = json_decode($response->body());
-        return StationRepository::parseHafasStopObject($data);
+        return TriasStationRepository::parseHafasStopObject($data);
     }
 }

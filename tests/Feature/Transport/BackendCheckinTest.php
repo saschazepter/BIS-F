@@ -18,7 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\FeatureTestCase;
-use Tests\Helpers\CheckinRequestTestHydrator;
+use Tests\TestHelpers\CheckinRequestTestHydrator;
 use Tests\TestHelpers\HafasHelpers;
 
 class BackendCheckinTest extends FeatureTestCase

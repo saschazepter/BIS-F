@@ -1,6 +1,6 @@
 <?php
 
-use App\DataProviders\Repositories\StationRepository;
+use App\DataProviders\Repositories\TriasStationRepository;
 use App\Models\Stopover;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -51,7 +51,7 @@ class CreateTrainStopoversTable extends Migration
 
                   foreach ($stopovers as $stopover) {
 
-                      $hafasStop = StationRepository::parseHafasStopObject($stopover->stop);
+                      $hafasStop = TriasStationRepository::parseHafasStopObject($stopover->stop);
 
                       Stopover::updateOrCreate(
                           [

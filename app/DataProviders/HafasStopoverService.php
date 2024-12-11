@@ -31,7 +31,7 @@ class HafasStopoverService
                 continue; // No realtime data present for this stopover, keep existing data
             }
 
-            $stop             = Repositories\StationRepository::parseHafasStopObject($stopover->stop);
+            $stop             = Repositories\TriasStationRepository::parseHafasStopObject($stopover->stop);
             $arrivalPlanned   = Carbon::parse($stopover->plannedArrival)->tz(config('app.timezone'));
             $departurePlanned = Carbon::parse($stopover->plannedDeparture)->tz(config('app.timezone'));
 

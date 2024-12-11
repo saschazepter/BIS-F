@@ -2,6 +2,7 @@
 
 namespace App\Services\Wikidata;
 
+use App\Dto\IfoptDto;
 use App\Dto\Wikidata\WikidataEntity;
 use App\Exceptions\Wikidata\FetchException;
 use App\Models\Station;
@@ -33,7 +34,7 @@ class WikidataImportService
         $rl100     = $wikidataEntity->getClaims('P8671')[0]['mainsnak']['datavalue']['value'] ?? null;   //P8671 = RL100
         $ifopt     = $wikidataEntity->getClaims('P12393')[0]['mainsnak']['datavalue']['value'] ?? null;  //P12393 = IFOPT
         if ($ifopt !== null) {
-            $splittedIfopt = explode(':', $ifopt);
+            $ifopt = IfoptDto::fromString($ifopt);
         }
 
         //if ibnr is already in use, we can't import the station
@@ -49,11 +50,11 @@ class WikidataImportService
                 'wikidata_id'   => $qId,
                 'rilIdentifier' => $rl100,
                 'ibnr'          => $ibnr,
-                'ifopt_a'       => $splittedIfopt[0] ?? null,
-                'ifopt_b'       => $splittedIfopt[1] ?? null,
-                'ifopt_c'       => $splittedIfopt[2] ?? null,
-                'ifopt_d'       => $splittedIfopt[3] ?? null,
-                'ifopt_e'       => $splittedIfopt[4] ?? null,
+                'ifopt_a'       => $ifopt->a,
+                'ifopt_b'       => $ifopt->b,
+                'ifopt_c'       => $ifopt->c,
+                'ifopt_d'       => $ifopt->d,
+                'ifopt_e'       => $ifopt->e,
             ]
         );
     }

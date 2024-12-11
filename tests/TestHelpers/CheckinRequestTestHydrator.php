@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Helpers;
+namespace Tests\TestHelpers;
 
 use App\Dto\Internal\CheckInRequestDto;
 use App\Models\Checkin;
