@@ -34,7 +34,7 @@ class CheckinTest extends FeatureTestCase
 
         $requestDate = Carbon::parse(self::DEPARTURE_TIME);
 
-        $trainStationboard = CheckinController::getDepartures(
+        $trainStationboard = CheckinController::getDeprecatedDepartures(
             stationQuery: self::FRANKFURT_HBF['name'],
             when:         $requestDate
         );

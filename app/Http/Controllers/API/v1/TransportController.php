@@ -153,7 +153,7 @@ class TransportController extends Controller
         $station   = Station::findOrFail($stationId);
 
         try {
-            $departures = $this->dataProvider::getDepartures(
+            $departures = $this->dataProvider->getDepartures(
                 station:   $station,
                 when:      $timestamp,
                 type:      TravelType::tryFrom($validated['travelType'] ?? null),
@@ -311,7 +311,7 @@ class TransportController extends Controller
                                         ]);
 
         try {
-            $nearestStation = $this->dataProvider::getNearbyStations(
+            $nearestStation = $this->dataProvider->getNearbyStations(
                 latitude:  $validated['latitude'],
                 longitude: $validated['longitude'],
                 results:   1

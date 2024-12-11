@@ -249,7 +249,7 @@ class EventController extends Controller
                                         ]);
 
         if (isset($validated['nearestStation'])) {
-            $stations = $this->dataProvider::getStations($validated['nearestStation'], 1);
+            $stations = $this->dataProvider->getStations($validated['nearestStation'], 1);
             if (count($stations) === 0) {
                 return $this->sendError(error: __('events.request.station_not_found'), code: 400);
             }

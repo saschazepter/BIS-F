@@ -36,6 +36,8 @@ class CheckinController
      * @deprecated adapt admin panel to api endpoints
      */
     public static function lookupStation(string|int $query): Station {
+        $dataProvider = (new DataProviderFactory)->create(HafasController::class);
+
         //Lookup by station ibnr
         if (is_numeric($query)) {
             $station = Station::where('ibnr', $query)->first();
@@ -46,14 +48,14 @@ class CheckinController
 
         //Lookup by ril identifier
         if (!is_numeric($query) && strlen($query) <= 5 && ctype_upper($query)) {
-            $station = (new DataProviderFactory)->create(HafasController::class)::getStationByRilIdentifier($query);
+            $station = $dataProvider->getStationByRilIdentifier($query);
             if ($station !== null) {
                 return $station;
             }
         }
 
         //Lookup HAFAS
-        $station = (new DataProviderFactory)->create(HafasController::class)::getStations(query: $query, results: 1)->first();
+        $station = $dataProvider->getStations(query: $query, results: 1)->first();
         if ($station !== null) {
             return $station;
         }
@@ -69,14 +71,14 @@ class CheckinController
      *
      * @return array
      * @throws HafasException
-     * @deprecated use DataProviderInterface::getDepartures(...) directly instead (-> less overhead)
+     * @deprecated use DataProviderInterface->getDepartures(...) directly instead (-> less overhead)
      */
     #[ArrayShape([
         'station'    => Station::class,
         'departures' => Collection::class,
         'times'      => "array"
     ])]
-    public static function getDepartures(
+    public static function getDeprecatedDepartures(
         string|int $stationQuery,
         Carbon     $when = null,
         TravelType $travelType = null,
@@ -91,7 +93,7 @@ class CheckinController
             'next' => $when->clone()->addMinutes(15)
         ];
 
-        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
+        $departures = (new DataProviderFactory)->create(HafasController::class)->getDepartures(
             station:   $station,
             when:      $when,
             type:      $travelType,
@@ -128,7 +130,7 @@ class CheckinController
 
         if (isset($validated['station'])) {
             try {
-                $trainStationboardResponse = self::getDepartures(
+                $trainStationboardResponse = self::getDeprecatedDepartures(
                     stationQuery: $validated['station'],
                     when:         $when,
                     travelType:   TravelType::tryFrom($validated['filter'] ?? null),

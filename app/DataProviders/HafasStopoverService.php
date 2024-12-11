@@ -85,7 +85,7 @@ class HafasStopoverService
      * @throws HafasException
      */
     public function refreshStopover(Stopover $stopover): void {
-        $departure = $this->dataProvider::getDepartures(
+        $departure = $this->dataProvider->getDepartures(
             station: $stopover->station,
             when:    $stopover->departure_planned,
         )->filter(function(stdClass $trip) use ($stopover) {
