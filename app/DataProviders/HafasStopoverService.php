@@ -9,6 +9,18 @@ use stdClass;
 
 class HafasStopoverService
 {
+    private DataProviderInterface $dataProvider;
+
+    /**
+     * @template T of DataProviderInterface
+     * @param class-string<T>          $dataProvider
+     * @param DataProviderFactory|null $dataProviderFactory
+     */
+    public function __construct(string $dataProvider, ?DataProviderFactory $dataProviderFactory = null) {
+        $dataProviderFactory ??= new DataProviderFactory();
+        $this->dataProvider  = $dataProviderFactory->create($dataProvider);
+    }
+
     public static function refreshStopovers(stdClass $rawHafas): stdClass {
         $stopoversUpdated = 0;
         $payloadArrival   = [];
@@ -72,8 +84,8 @@ class HafasStopoverService
      * @return void
      * @throws HafasException
      */
-    public static function refreshStopover(Stopover $stopover): void {
-        $departure = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
+    public function refreshStopover(Stopover $stopover): void {
+        $departure = $this->dataProvider::getDepartures(
             station: $stopover->station,
             when:    $stopover->departure_planned,
         )->filter(function(stdClass $trip) use ($stopover) {

@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\DataProviders\DataProviderFactory;
+use App\DataProviders\DataProviderInterface;
 use App\DataProviders\HafasController;
 use App\Exceptions\HafasException;
-use App\Http\Controllers\Backend\Transport\StationController;
+use App\Http\Controllers\Frontend\Admin\CheckinController;
 use App\Models\Station;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,13 +15,21 @@ use Tests\FeatureTestCase;
 
 class StationSearchTest extends FeatureTestCase
 {
+    private DataProviderInterface $dataProvider;
+
+    public function setUp(): void {
+        parent::setUp();
+        $this->dataProvider = (new DataProviderFactory())->create(HafasController::class);
+    }
+
+
     use RefreshDatabase;
 
     public function testStringSearch(): void {
         $searchResults = [self::HANNOVER_HBF];
         Http::fake(["*" => Http::response($searchResults)]);
 
-        $station = StationController::lookupStation(self::HANNOVER_HBF['name']);
+        $station = CheckinController::lookupStation(self::HANNOVER_HBF['name']);
         $this->assertEquals(self::HANNOVER_HBF['name'], $station->name);
     }
 
@@ -28,14 +37,14 @@ class StationSearchTest extends FeatureTestCase
         Http::fake(["*" => Http::response([], 200)]);
 
         $this->assertThrows(function() {
-            StationController::lookupStation("Bielefeld Hbf");
+            CheckinController::lookupStation("Bielefeld Hbf");
         }, ModelNotFoundException::class);
     }
 
     public function testDs100Search(): void {
         Http::fake(["*/stations/" . self::HANNOVER_HBF['ril100'] => Http::response(self::HANNOVER_HBF)]);
 
-        $station = StationController::lookupStation(self::HANNOVER_HBF['ril100']);
+        $station = CheckinController::lookupStation(self::HANNOVER_HBF['ril100']);
         $this->assertEquals(self::HANNOVER_HBF['name'], $station->name);
     }
 
@@ -43,7 +52,7 @@ class StationSearchTest extends FeatureTestCase
         Http::fake(["*" => Http::response([], 200)]);
 
         $this->assertThrows(function() {
-            StationController::lookupStation("EBIL");
+            CheckinController::lookupStation("EBIL");
         }, ModelNotFoundException::class);
     }
 
@@ -52,7 +61,7 @@ class StationSearchTest extends FeatureTestCase
         $expected = Station::factory()->make();
         $expected->save();
 
-        $station = StationController::lookupStation(str($expected->ibnr));
+        $station = CheckinController::lookupStation(str($expected->ibnr));
         $this->assertEquals(Station::find($expected->id)->name, $station->name);
     }
 
@@ -62,7 +71,7 @@ class StationSearchTest extends FeatureTestCase
                                                              ["distance" => 421]
                                                          )])]);
 
-        $result = (new DataProviderFactory)->create(HafasController::class)::getNearbyStations(
+        $result = $this->dataProvider::getNearbyStations(
             self::HANNOVER_HBF['location']['latitude'],
             self::HANNOVER_HBF['location']['longitude']);
 
@@ -74,7 +83,7 @@ class StationSearchTest extends FeatureTestCase
         Http::fake(Http::response(status: 503));
 
         $this->assertThrows(function() {
-            (new DataProviderFactory)->create(HafasController::class)::getNearbyStations(
+            $this->dataProvider::getNearbyStations(
                 self::HANNOVER_HBF['location']['latitude'],
                 self::HANNOVER_HBF['location']['longitude']);
         }, HafasException::class);

@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\DataProviders\DataProviderFactory;
+use App\DataProviders\DataProviderInterface;
 use App\DataProviders\HafasController;
-use App\Enum\TravelType;
 use App\Exceptions\HafasException;
-use App\Http\Controllers\Backend\Transport\StationController;
 use App\Http\Resources\StationResource;
 use App\Models\Checkin;
 use App\Models\PolyLine;
@@ -14,13 +13,21 @@ use App\Models\Station;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use JetBrains\PhpStorm\ArrayShape;
 
 /**
  * @deprecated Content will be moved to the backend/frontend/API packages soon, please don't add new functions here!
  */
 class TransportController extends Controller
 {
+    private DataProviderInterface $dataProvider;
+
+    /**
+     * @template T of DataProviderInterface
+     * @param class-string<T> $dataProvider
+     */
+    public function __construct(string $dataProvider) {
+        $this->dataProvider = (new DataProviderFactory())->create($dataProvider);
+    }
 
     /**
      * @param string $query
@@ -29,7 +36,7 @@ class TransportController extends Controller
      * @throws HafasException
      * @api v1
      */
-    public static function getTrainStationAutocomplete(string $query): Collection {
+    public function getTrainStationAutocomplete(string $query): Collection {
         if (!is_numeric($query) && strlen($query) <= 5 && ctype_upper($query)) {
             $stations = (new DataProviderFactory)->create(HafasController::class)::getStationsByFuzzyRilIdentifier(rilIdentifier: $query);
         }
@@ -41,71 +48,6 @@ class TransportController extends Controller
         return $stations->map(function(Station $station) {
             return new StationResource($station);
         });
-    }
-
-    /**
-     * @param string|int      $stationQuery
-     * @param Carbon|null     $when
-     * @param TravelType|null $travelType
-     * @param bool            $localtime
-     *
-     * @return array
-     * @throws HafasException
-     * @deprecated use DataProviderInterface::getDepartures(...) directly instead (-> less overhead)
-     *
-     * @api        v1
-     */
-    #[ArrayShape([
-        'station'    => Station::class,
-        'departures' => Collection::class,
-        'times'      => "array"
-    ])]
-    public static function getDepartures(
-        string|int $stationQuery,
-        Carbon     $when = null,
-        TravelType $travelType = null,
-        bool       $localtime = false
-    ): array {
-        $station = StationController::lookupStation($stationQuery);
-
-        $when  = $when ?? Carbon::now()->subMinutes(5);
-        $times = [
-            'now'  => $when,
-            'prev' => $when->clone()->subMinutes(15),
-            'next' => $when->clone()->addMinutes(15)
-        ];
-
-        $departures = (new DataProviderFactory)->create(HafasController::class)::getDepartures(
-            station:   $station,
-            when:      $when,
-            type:      $travelType,
-            localtime: $localtime
-        )->sortBy(function($departure) {
-            return $departure->when ?? $departure->plannedWhen;
-        });
-
-        return ['station' => $station, 'departures' => $departures->values(), 'times' => $times];
-    }
-
-    // Train with cancelled stops show up in the stationboard sometimes with when == 0.
-    // However, they will have a scheduledWhen. This snippet will sort the departures
-    // by actualWhen or use scheduledWhen if actual is empty.
-    public static function sortByWhenOrScheduledWhen(array $departuresList): array {
-        uasort($departuresList, function($a, $b) {
-            $dateA = $a->when;
-            if ($dateA == null) {
-                $dateA = $a->scheduledWhen;
-            }
-
-            $dateB = $b->when;
-            if ($dateB == null) {
-                $dateB = $b->scheduledWhen;
-            }
-
-            return ($dateA < $dateB) ? -1 : 1;
-        });
-
-        return $departuresList;
     }
 
     /**

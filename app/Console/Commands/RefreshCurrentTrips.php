@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\DataProviders\DataProviderFactory;
+use App\DataProviders\DataProviderInterface;
 use App\DataProviders\HafasController;
 use App\DataProviders\HafasStopoverService;
 use App\Enum\TripSource;
@@ -16,6 +17,11 @@ class RefreshCurrentTrips extends Command
 {
     protected $signature   = 'trwl:refreshTrips';
     protected $description = 'Refresh delay data from current active trips';
+
+    private function getDataProvider(): DataProviderInterface {
+        // Probably only HafasController is needed here, because this Command is very Hafas specific
+        return (new DataProviderFactory)->create(HafasController::class);
+    }
 
     public function handle(): int {
         $this->info('Getting trips to be refreshed...');
@@ -55,7 +61,7 @@ class RefreshCurrentTrips extends Command
                 $this->info('Refreshing trip ' . $trip->trip_id . ' (' . $trip->linename . ')...');
                 $trip->update(['last_refreshed' => now()]);
 
-                $rawHafas      = (new DataProviderFactory)->create(HafasController::class)::fetchRawHafasTrip($trip->trip_id, $trip->linename);
+                $rawHafas      = $this->getDataProvider()::fetchRawHafasTrip($trip->trip_id, $trip->linename);
                 $updatedCounts = HafasStopoverService::refreshStopovers($rawHafas);
                 $this->info('Updated ' . $updatedCounts->stopovers . ' stopovers.');
 

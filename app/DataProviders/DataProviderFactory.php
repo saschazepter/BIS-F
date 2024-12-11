@@ -13,19 +13,6 @@ class DataProviderFactory
      * @return T
      * @throws InvalidArgumentException
      */
-    public static function createDataProvider(string $class) {
-        $self = new self();
-
-        return $self->create($class);
-    }
-
-    /**
-     * @template T of DataProviderInterface
-     * @param class-string<T> $class
-     *
-     * @return T
-     * @throws InvalidArgumentException
-     */
     public function create(string $class) {
         $this->checkClass($class);
 
