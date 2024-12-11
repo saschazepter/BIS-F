@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Webhooks;
 
-use App\DataProviders\HafasController;
 use App\Dto\Internal\CheckInRequestDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
@@ -17,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Tests\FeatureTestCase;
+use Tests\TestHelpers\HafasHelpers;
 use function PHPUnit\Framework\assertEquals;
 
 class WebhookStatusTest extends FeatureTestCase
@@ -199,8 +199,8 @@ class WebhookStatusTest extends FeatureTestCase
             startId:  self::FRANKFURT_HBF['id']
         );
 
-        $origin      = HafasController::getStation(self::FRANKFURT_HBF['id']);
-        $destination = HafasController::getStation(self::HANNOVER_HBF['id']);
+        $origin      = HafasHelpers::getStationById(self::FRANKFURT_HBF['id']);
+        $destination = HafasHelpers::getStationById(self::HANNOVER_HBF['id']);
 
         $dto = new CheckInRequestDto();
         $dto->setUser($user)

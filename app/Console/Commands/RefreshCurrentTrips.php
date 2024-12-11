@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\DataProviders\HafasController;
+use App\DataProviders\HafasStopoverService;
 use App\Enum\TripSource;
 use App\Exceptions\HafasException;
 use App\Models\Checkin;
@@ -54,7 +55,7 @@ class RefreshCurrentTrips extends Command
                 $trip->update(['last_refreshed' => now()]);
 
                 $rawHafas      = HafasController::fetchRawHafasTrip($trip->trip_id, $trip->linename);
-                $updatedCounts = HafasController::refreshStopovers($rawHafas);
+                $updatedCounts = HafasStopoverService::refreshStopovers($rawHafas);
                 $this->info('Updated ' . $updatedCounts->stopovers . ' stopovers.');
 
                 //set duration for refreshed trips to null, so it will be recalculated
