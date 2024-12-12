@@ -27,10 +27,22 @@ class CacheKey
     private const string HAFAS_DEPARTURES     = '_HafasDepartures_%d_%s_%s';
     private const string HAFAFS_STATION_RIL   = '_HafasStationRil';
     private const string HAFAS_STATIONS_FUZZY = '_HafasStationsFuzzy';
+    private const string HAFAS_CACHE_HIT      = '_HafasCacheHit_%s';
+    private const string HAFAS_CACHE_SET      = '_HafasCacheSet_%s';
 
     // formatting keys
     private const string FOR                  = '%s-for-%s';
     private const string FROM_TO              = '%s-from-%s-to-%s';
+
+    public static function getHafasCacheHitKey(string $key): string {
+        $key = str_replace('monitoring-counter-', '', $key);
+        return sprintf(self::HAFAS_CACHE_HIT, $key);
+    }
+
+    public static function getHafasCacheSetKey(string $key): string {
+        $key = str_replace('monitoring-counter-', '', $key);
+        return sprintf(self::HAFAS_CACHE_SET, $key);
+    }
 
     public static function getHafasTripKey(string $tripId, string $lineName): string {
         $tripId = sha1($tripId);

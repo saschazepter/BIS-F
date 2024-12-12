@@ -33,6 +33,7 @@ enum HCK
         return [
             self::DEPARTURES_FAILURE => 'Departures',
             self::TRIPS_FAILURE      => 'Trips',
+            self::TRIPS_502          => 'Trips502',
             self::STOPS_FAILURE      => 'Stops',
             self::STATIONS_FAILURE   => 'Stations',
             self::LOCATIONS_FAILURE  => 'Locations',

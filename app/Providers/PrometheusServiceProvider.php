@@ -115,6 +115,32 @@ class PrometheusServiceProvider extends ServiceProvider
                       return $this->getHafasByType(HCK::getSuccesses());
                   });
 
+        Prometheus::addGauge("hafas_cache_hits")
+                  ->helpText("How many hafas requests have been served from cache?")
+                  ->labels(["request_name"])
+                  ->value(function() {
+                      $values = [];
+                      foreach (HCK::getSuccesses() as $key => $name) {
+                          $key           = CacheKey::getHafasCacheHitKey($key);
+                          $values[$name] = Cache::get($key, 0);
+                      }
+
+                      return array_map(fn($value, $key) => [$value, [$key]], $values, array_keys($values));
+                  });
+
+        Prometheus::addGauge("hafas_cache_sets")
+                  ->helpText("How many hafas requests have been stored in cache?")
+                  ->labels(["request_name"])
+                  ->value(function() {
+                      $values = [];
+                      foreach (HCK::getSuccesses() as $key => $name) {
+                          $key           = CacheKey::getHafasCacheSetKey($key);
+                          $values[$name] = Cache::get($key, 0);
+                      }
+
+                      return array_map(fn($value, $key) => [$value, [$key]], $values, array_keys($values));
+                  });
+
         Prometheus::addGauge("completed_jobs_count")
                   ->helpText("How many jobs are done? Old items from queue monitor table are deleted after 7 days.")
                   ->labels(["job_name", "status", "queue"])

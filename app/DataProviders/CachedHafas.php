@@ -4,6 +4,7 @@ namespace App\DataProviders;
 
 use App\Enum\TravelType;
 use App\Helpers\CacheKey;
+use App\Helpers\HCK;
 use App\Models\Station;
 use App\Models\Trip;
 use Carbon\Carbon;
@@ -13,21 +14,30 @@ use Throwable;
 
 class CachedHafas extends Hafas implements DataProviderInterface
 {
-
     public function fetchHafasTrip(string $tripID, string $lineName): Trip {
         $key = CacheKey::getHafasTripKey($tripID, $lineName);
 
-        return $this->remember($key, now()->addMinutes(15), function() use ($tripID, $lineName) {
-            return parent::fetchHafasTrip($tripID, $lineName);
-        });
+        return $this->remember(
+            $key,
+            now()->addMinutes(15),
+            function() use ($tripID, $lineName) {
+                return parent::fetchHafasTrip($tripID, $lineName);
+            },
+            HCK::TRIPS_SUCCESS
+        );
     }
 
     public function getStations(string $query, int $results = 10): Collection {
         $key = CacheKey::getHafasStationsKey($query);
 
-        return $this->remember($key, now()->addMinutes(15), function() use ($query, $results) {
-            return parent::getStations($query, $results);
-        });
+        return $this->remember(
+            $key,
+            now()->addMinutes(15),
+            function() use ($query, $results) {
+                return parent::getStations($query, $results);
+            },
+            HCK::LOCATIONS_SUCCESS
+        );
     }
 
     public function getDepartures(Station $station, Carbon $when, int $duration = 15, TravelType $type = null, bool $localtime = false): Collection {
@@ -43,9 +53,14 @@ class CachedHafas extends Hafas implements DataProviderInterface
 
         $key = CacheKey::getHafasDeparturesKey($station->id, $when, $localtime);
 
-        $departures = $this->remember($key, now()->addMinutes(15), function() use ($station, $when, $duration, $type, $localtime) {
-            return parent::getDepartures($station, $when, $duration, $type, $localtime);
-        });
+        $departures = $this->remember(
+            $key,
+            now()->addMinutes(15),
+            function() use ($station, $when, $duration, $type, $localtime) {
+                return parent::getDepartures($station, $when, $duration, $type, $localtime);
+            },
+            HCK::DEPARTURES_SUCCESS
+        );
 
         // filter entries by when and duration
         return $departures->filter(function($departure) use ($filterWhen, $duration) {
@@ -57,29 +72,39 @@ class CachedHafas extends Hafas implements DataProviderInterface
     public function getStationByRilIdentifier(string $rilIdentifier): ?Station {
         $key = CacheKey::getHafasByRilIdentifierKey($rilIdentifier);
 
-        return $this->remember($key, now()->addMinutes(15), function() use ($rilIdentifier) {
-            return parent::getStationByRilIdentifier($rilIdentifier);
-        });
+        return $this->remember(
+            $key,
+            now()->addMinutes(15),
+            function() use ($rilIdentifier) {
+                return parent::getStationByRilIdentifier($rilIdentifier);
+            },
+            HCK::STATIONS_SUCCESS
+        );
     }
 
     public function getStationsByFuzzyRilIdentifier(string $rilIdentifier): ?Collection {
         $key = CacheKey::getHafasStationsFuzzyKey($rilIdentifier);
 
-        return $this->remember($key, now()->addMinutes(15), function() use ($rilIdentifier) {
-            return parent::getStationsByFuzzyRilIdentifier($rilIdentifier);
-        });
+        return $this->remember(
+            $key,
+            now()->addMinutes(15),
+            function() use ($rilIdentifier) {
+                return parent::getStationsByFuzzyRilIdentifier($rilIdentifier);
+            },
+            HCK::STATIONS_SUCCESS
+        );
     }
 
-    private function remember(string $key, Carbon $expires, callable $callback): mixed {
+    private function remember(string $key, Carbon $expires, callable $callback, ?string $ident = null): mixed {
         if (Cache::has($key)) {
-            CacheKey::increment('hafas_cache_hit');
+            CacheKey::increment(CacheKey::getHafasCacheHitKey($ident));
             return Cache::get($key);
         }
 
         try {
             $result = $callback();
+            CacheKey::increment(CacheKey::getHafasCacheSetKey($ident));
             Cache::put($key, $result, $expires);
-            CacheKey::increment('hafas_cache_set');
             return $result;
         } catch (Throwable $e) {
             Cache::put($key, null, $expires);
