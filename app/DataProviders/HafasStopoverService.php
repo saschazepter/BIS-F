@@ -14,11 +14,11 @@ class HafasStopoverService
     /**
      * @template T of DataProviderInterface
      * @param class-string<T>          $dataProvider
-     * @param DataProviderFactory|null $dataProviderFactory
+     * @param DataProviderBuilder|null $dataProviderFactory
      */
-    public function __construct(string $dataProvider, ?DataProviderFactory $dataProviderFactory = null) {
-        $dataProviderFactory ??= new DataProviderFactory();
-        $this->dataProvider  = $dataProviderFactory->create($dataProvider);
+    public function __construct(string $dataProvider, ?DataProviderBuilder $dataProviderFactory = null) {
+        $dataProviderFactory ??= new DataProviderBuilder();
+        $this->dataProvider  = $dataProviderFactory->build($dataProvider);
     }
 
     public static function refreshStopovers(stdClass $rawHafas): stdClass {

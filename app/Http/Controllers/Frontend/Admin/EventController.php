@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Frontend\Admin;
 
-use App\DataProviders\DataProviderFactory;
+use App\DataProviders\DataProviderBuilder;
 use App\DataProviders\DataProviderInterface;
 use App\DataProviders\Hafas;
 use App\Enum\EventRejectionReason;
@@ -26,7 +26,7 @@ class EventController extends Controller
 
     public function __construct(string $dataProvider = null) {
         $dataProvider       ??= Hafas::class;
-        $this->dataProvider = (new DataProviderFactory())->create($dataProvider);
+        $this->dataProvider = (new DataProviderBuilder())->build($dataProvider);
     }
 
     private const VALIDATOR_RULES = [

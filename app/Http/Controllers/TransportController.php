@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\DataProviders\DataProviderFactory;
+use App\DataProviders\DataProviderBuilder;
 use App\DataProviders\DataProviderInterface;
 use App\Exceptions\HafasException;
 use App\Http\Resources\StationResource;
@@ -25,7 +25,7 @@ class TransportController extends Controller
      * @param class-string<T> $dataProvider
      */
     public function __construct(string $dataProvider) {
-        $this->dataProvider = (new DataProviderFactory())->create($dataProvider);
+        $this->dataProvider = (new DataProviderBuilder())->build($dataProvider);
     }
 
     /**

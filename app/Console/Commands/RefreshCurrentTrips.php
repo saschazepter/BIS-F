@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\DataProviders\DataProviderFactory;
+use App\DataProviders\DataProviderBuilder;
 use App\DataProviders\DataProviderInterface;
-use App\DataProviders\Hafas;
 use App\DataProviders\HafasStopoverService;
 use App\Enum\TripSource;
 use App\Exceptions\HafasException;
@@ -20,7 +19,7 @@ class RefreshCurrentTrips extends Command
 
     private function getDataProvider(): DataProviderInterface {
         // Probably only HafasController is needed here, because this Command is very Hafas specific
-        return (new DataProviderFactory)->create(Hafas::class);
+        return (new DataProviderBuilder)->build();
     }
 
     public function handle(): int {

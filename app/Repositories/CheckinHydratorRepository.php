@@ -2,8 +2,7 @@
 
 namespace App\Repositories;
 
-use App\DataProviders\DataProviderFactory;
-use App\DataProviders\Hafas;
+use App\DataProviders\DataProviderBuilder;
 use App\Exceptions\HafasException;
 use App\Models\Event;
 use App\Models\Station;
@@ -27,7 +26,7 @@ class CheckinHydratorRepository
      */
     public function getHafasTrip(string $tripID, string $lineName): Trip {
         // todo: create trip IDs with a prefix, to distinguish between different data providers
-        $dataProvider = (new DataProviderFactory)->create(Hafas::class);
+        $dataProvider = (new DataProviderBuilder)->build();
 
         if (is_numeric($tripID)) {
             $trip = Trip::where('id', $tripID)->where('linename', $lineName)->first();
