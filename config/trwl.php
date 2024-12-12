@@ -12,7 +12,7 @@ return [
     'mastodon_timeout_seconds'  => env("MASTODON_TIMEOUT_SECONDS", 5),
 
     # Brouter
-    'brouter'                  => env('BROUTER', true),
+    'brouter'                   => env('BROUTER', true),
     'brouter_url'               => env('BROUTER_URL', 'https://brouter.de/'),
     'brouter_timeout'           => env('BROUTER_TIMEOUT', 10),
 
@@ -55,7 +55,8 @@ return [
     ],
     'cache'                     => [
         'global-statistics-retention-seconds' => env('GLOBAL_STATISTICS_CACHE_RETENTION_SECONDS', 60 * 60),
-        'leaderboard-retention-seconds'       => env('LEADERBOARD_CACHE_RETENTION_SECONDS', 5 * 60)
+        'leaderboard-retention-seconds'       => env('LEADERBOARD_CACHE_RETENTION_SECONDS', 5 * 60),
+        'hafas'                               => env('HAFAS_CACHE', true),
     ],
     'year_in_review'            => [
         'alert'   => env('YEAR_IN_REVIEW_ALERT', false),
