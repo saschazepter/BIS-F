@@ -22,7 +22,7 @@ class CacheKey
     private const string LEADERBOARD_FRIENDS  = 'LeaderboardFriends';
     private const string LEADERBOARD_MONTH    = 'LeaderboardMonth';
     private const string STATISTICS_GLOBAL    = 'StatisticsGlobal';
-    private const string HAFAS_TRIP           = '_HafasTrip';
+    private const string HAFAS_TRIP           = '_HafasTrip_%s_%s';
     private const string HAFAS_STATIONS       = '_HafasStations';
     private const string HAFAS_DEPARTURES     = '_HafasDepartures_%d_%s_%s';
     private const string HAFAFS_STATION_RIL   = '_HafasStationRil';
@@ -32,8 +32,9 @@ class CacheKey
     private const string FOR                  = '%s-for-%s';
     private const string FROM_TO              = '%s-from-%s-to-%s';
 
-    public static function getHafasTripKey(string $tripId): string {
-        return sprintf(self::FOR, self::HAFAS_TRIP, $tripId);
+    public static function getHafasTripKey(string $tripId, string $lineName): string {
+        $tripId = sha1($tripId);
+        return sprintf(self::HAFAS_TRIP, $tripId, $lineName);
     }
 
     public static function getHafasStationsKey(string $query): string {

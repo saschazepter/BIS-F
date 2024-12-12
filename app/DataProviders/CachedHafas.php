@@ -15,7 +15,7 @@ class CachedHafas extends Hafas implements DataProviderInterface
 {
 
     public function fetchHafasTrip(string $tripID, string $lineName): Trip {
-        $key = CacheKey::getHafasTripKey($tripID);
+        $key = CacheKey::getHafasTripKey($tripID, $lineName);
 
         return $this->remember($key, now()->addMinutes(15), function() use ($tripID, $lineName) {
             return parent::fetchHafasTrip($tripID, $lineName);

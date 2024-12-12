@@ -56,7 +56,7 @@ return [
     'cache'                     => [
         'global-statistics-retention-seconds' => env('GLOBAL_STATISTICS_CACHE_RETENTION_SECONDS', 60 * 60),
         'leaderboard-retention-seconds'       => env('LEADERBOARD_CACHE_RETENTION_SECONDS', 5 * 60),
-        'hafas'                               => env('HAFAS_CACHE', true),
+        'hafas'                               => env('HAFAS_CACHE', false),
     ],
     'year_in_review'            => [
         'alert'   => env('YEAR_IN_REVIEW_ALERT', false),
