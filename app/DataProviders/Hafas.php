@@ -128,8 +128,8 @@ class Hafas extends Controller implements DataProviderInterface
         TravelType $type = null,
         bool       $skipTimeShift = false
     ) {
-        $time     = $skipTimeShift ? $when : (clone $when)->shiftTimezone("Europe/Berlin");
-        $query    = [
+        $time  = $skipTimeShift ? $when : (clone $when)->shiftTimezone("Europe/Berlin");
+        $query = [
             'when'                       => $time->toIso8601String(),
             'duration'                   => $duration,
             HTT::NATIONAL_EXPRESS->value => FptfHelper::checkTravelType($type, TravelType::EXPRESS),
@@ -143,7 +143,11 @@ class Hafas extends Controller implements DataProviderInterface
             HTT::TRAM->value             => FptfHelper::checkTravelType($type, TravelType::TRAM),
             HTT::TAXI->value             => FptfHelper::checkTravelType($type, TravelType::TAXI),
         ];
-        $response = $this->client()->get('/stops/' . $station->ibnr . '/departures', $query);
+        try {
+            $response = $this->client()->get('/stops/' . $station->ibnr . '/departures', $query);
+        } catch (Exception $exception) {
+            throw new HafasException($exception->getMessage());
+        }
 
         if (!$response->ok()) {
             throw new HafasException(__('messages.exception.generalHafas'));
