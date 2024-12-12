@@ -7,6 +7,8 @@ use App\Enum\HafasTravelType as HTT;
 use App\Enum\TravelType;
 use App\Enum\TripSource;
 use App\Exceptions\HafasException;
+use App\Helpers\CacheKey;
+use App\Helpers\HCK;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\TransportController;
 use App\Models\HafasOperator;
@@ -42,8 +44,12 @@ class Hafas extends Controller implements DataProviderInterface
             if ($response->ok() && !empty($response->body()) && $response->body() !== '[]') {
                 $data    = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
                 $station = StationRepository::parseHafasStopObject($data);
+                CacheKey::increment(HCK::STATIONS_SUCCESS);
+            } else {
+                CacheKey::increment(HCK::STATIONS_NOT_OK);
             }
         } catch (Exception $exception) {
+            CacheKey::increment(HCK::STATIONS_FAILURE);
             report($exception);
         }
         return $station;
@@ -75,12 +81,20 @@ class Hafas extends Controller implements DataProviderInterface
             );
 
             $data = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
+            if (!$response->ok()) {
+                CacheKey::increment(HCK::LOCATIONS_NOT_OK);
+            }
+
             if (empty($data) || !$response->ok()) {
                 return Collection::empty();
             }
 
+            CacheKey::increment(HCK::LOCATIONS_SUCCESS);
             return Repositories\StationRepository::parseHafasStops($data);
         } catch (JsonException $exception) {
+            throw new HafasException($exception->getMessage());
+        } catch (Exception $exception) {
+            CacheKey::increment(HCK::LOCATIONS_FAILURE);
             throw new HafasException($exception->getMessage());
         }
     }
@@ -100,6 +114,7 @@ class Hafas extends Controller implements DataProviderInterface
             );
 
             if (!$response->ok()) {
+                CacheKey::increment(HCK::NEARBY_NOT_OK);
                 throw new HafasException(__('messages.exception.generalHafas'));
             }
 
@@ -111,8 +126,10 @@ class Hafas extends Controller implements DataProviderInterface
                 $station->distance = $hafasStation->distance;
             }
 
+            CacheKey::increment(HCK::NEARBY_SUCCESS);
             return $stations;
         } catch (JsonException $exception) {
+            CacheKey::increment(HCK::NEARBY_FAILURE);
             throw new HafasException($exception->getMessage());
         }
     }
@@ -146,13 +163,16 @@ class Hafas extends Controller implements DataProviderInterface
         try {
             $response = $this->client()->get('/stops/' . $station->ibnr . '/departures', $query);
         } catch (Exception $exception) {
+            CacheKey::increment(HCK::DEPARTURES_FAILURE);
             throw new HafasException($exception->getMessage());
         }
 
         if (!$response->ok()) {
+            CacheKey::increment(HCK::DEPARTURES_NOT_OK);
             throw new HafasException(__('messages.exception.generalHafas'));
         }
 
+        CacheKey::increment(HCK::DEPARTURES_SUCCESS);
         return json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
     }
 
@@ -244,20 +264,28 @@ class Hafas extends Controller implements DataProviderInterface
      * @throws HafasException|JsonException
      */
     public function fetchRawHafasTrip(string $tripId, string $lineName) {
-        $tripResponse = $this->client()->get("trips/" . rawurlencode($tripId), [
-            'lineName'  => $lineName,
-            'polyline'  => 'true',
-            'stopovers' => 'true'
-        ]);
+        try {
+            $tripResponse = $this->client()->get("trips/" . rawurlencode($tripId), [
+                'lineName'  => $lineName,
+                'polyline'  => 'true',
+                'stopovers' => 'true'
+            ]);
+        } catch (Exception $exception) {
+            CacheKey::increment(HCK::TRIPS_FAILURE);
+            throw new HafasException(__('messages.exception.generalHafas'));
+        }
 
         if ($tripResponse->ok()) {
+            CacheKey::increment(HCK::TRIPS_SUCCESS);
             return json_decode($tripResponse->body(), false, 512, JSON_THROW_ON_ERROR);
         }
         //sometimes HAFAS returnes 502 Bad Gateway
         if ($tripResponse->status() === 502) {
+            CacheKey::increment(HCK::TRIPS_502);
             Log::error('Cannot fetch trip with id: ' . $tripId);
             throw new HafasException(__('messages.exception.hafas.502'));
         }
+        CacheKey::increment(HCK::TRIPS_NOT_OK);
         Log::error('Unknown HAFAS Error (fetchRawHafasTrip)', [
             'status' => $tripResponse->status(),
             'body'   => $tripResponse->body()

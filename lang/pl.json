@@ -607,5 +607,12 @@
     "export.error.amount": "Zażądano eksportu więcej, niż 2000 podróży. Spróbuj zmniejszyć okres do eksportu.",
     "messages.exception.hafas.502": "Nie można wczytać rozkładu jazdy. Spróbuj ponownie za chwilę.",
     "settings.visibility.hide.explain": "Twoje meldunki będą ustawione jako prywatne po ustawionej przez Ciebie liczbie dni, tylko Ty będziesz w stanie je zobaczyć.",
-    "stationboard.timezone": "Wykryliśmy, że Twoja strefa czasowa jest inna niż tej stacji. Pokazywane tu czasy są wyświetlane w ustawionej przez Ciebie strefie czasowej <i>:timezone</i>."
+    "stationboard.timezone": "Wykryliśmy, że Twoja strefa czasowa jest inna niż tej stacji. Pokazywane tu czasy są wyświetlane w ustawionej przez Ciebie strefie czasowej <i>:timezone</i>.",
+    "user.login.mastodon": "Zaloguj się przez mastodon",
+    "user.login.or": "lub",
+    "user.no-account": "Nie masz konta?",
+    "notifications.youHaveBeenCheckedIn.lead": "Zostałeś zameldowany przez <b>@:username</b>",
+    "notifications.eventSuggestionProcessed.lead": "Twoja propozycja wydarzenia <b>:name</b> została przeglądnięta.",
+    "notifications.eventSuggestionProcessed.not-applicable": "Niestety twoja sugestia nie jest wartościowa dla społeczności.",
+    "user.points-enabled": "Pokaż punkty i ranking"
 }
