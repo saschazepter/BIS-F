@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Helpers;
 
+use App\Enum\TravelType;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -24,7 +25,7 @@ class CacheKey
     private const string STATISTICS_GLOBAL    = 'StatisticsGlobal';
     private const string HAFAS_TRIP           = '_HafasTrip_%s_%s';
     private const string HAFAS_STATIONS       = '_HafasStations';
-    private const string HAFAS_DEPARTURES     = '_HafasDepartures_%d_%s_%s';
+    private const string HAFAS_DEPARTURES     = '_HafasDepartures_%d_%s_%s_%s';
     private const string HAFAFS_STATION_RIL   = '_HafasStationRil';
     private const string HAFAS_STATIONS_FUZZY = '_HafasStationsFuzzy';
     private const string HAFAS_CACHE_HIT      = '_HafasCacheHit_%s';
@@ -53,8 +54,14 @@ class CacheKey
         return sprintf(self::FOR, self::HAFAS_STATIONS, $query);
     }
 
-    public static function getHafasDeparturesKey(string $stationId, Carbon $when, bool $localtime): string {
-        return sprintf(self::HAFAS_DEPARTURES, $stationId, $when->toTimeString(), $localtime ? 'local' : 'utc');
+    public static function getHafasDeparturesKey(string $stationId, Carbon $when, bool $localtime, ?TravelType $type): string {
+        return sprintf(
+            self::HAFAS_DEPARTURES,
+            $stationId,
+            $when->toTimeString(),
+            $localtime ? 'local' : 'utc',
+            $type ? $type->value : 'all'
+        );
     }
 
     public static function getHafasByRilIdentifierKey(string $rilIdentifier): string {

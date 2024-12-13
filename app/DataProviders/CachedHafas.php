@@ -51,7 +51,7 @@ class CachedHafas extends Hafas implements DataProviderInterface
         // set duration longer than 15 minutes
         $duration = $duration < 15 ? 30 : $duration;
 
-        $key = CacheKey::getHafasDeparturesKey($station->id, $when, $localtime);
+        $key = CacheKey::getHafasDeparturesKey($station->id, $when, $localtime, $type);
 
         $departures = $this->remember(
             $key,
