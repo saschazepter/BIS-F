@@ -67,6 +67,7 @@ Route::middleware(['auth', 'permission:view-backend'])->group(function() {
 
             Route::post('/wikidata/import', [StationController::class, 'importWikidata'])->name('backend.status.import.wikidata'); //TODO: Make this an API endpoint when it is accessible for users too
             Route::post('/{id}/wikidata', [StationController::class, 'fetchWikidata']);
+            Route::post('/{id}/timereset', [StationController::class, 'resetTime']);
         });
 
 
