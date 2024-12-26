@@ -11,31 +11,23 @@ use Illuminate\Support\Facades\Log;
 class WikidataImportService
 {
 
+    // supported types global definieren
+    private const SUPPORTED_TYPES = [
+        'Q55490', // Durchgangsbahnhof
+        'Q18543139', // Hauptbahnhof
+        'Q27996466', // Bahnhof (betrieblich)
+        'Q55488', // Bahnhof (Verkehrsanlage einer Bahn)
+        'Q124817561', // Betriebsstelle
+        'Q644371', // internationaler Flughafen
+        'Q21836433', // Flughafen
+        'Q953806', // Bushaltestelle
+        'Q2175765', // Straßenbahnhaltestelle
+    ];
+
     public static function importStation(string $qId): Station {
         $wikidataEntity = WikidataEntity::fetch($qId);
 
-        // check if entity is a supported type
-        $instancesOf    = $wikidataEntity->getClaims('P31');
-        $supportedTypes = [
-            'Q55490', // Durchgangsbahnhof
-            'Q18543139', // Hauptbahnhof
-            'Q27996466', // Bahnhof (betrieblich)
-            'Q55488', // Bahnhof (Verkehrsanlage einer Bahn)
-            'Q124817561', // Betriebsstelle
-            'Q644371', // internationaler Flughafen
-            'Q21836433', // Flughafen
-            'Q953806', // Bushaltestelle
-            'Q2175765', // Straßenbahnhaltestelle
-        ];
-        $isSupported    = false;
-        foreach ($instancesOf as $instanceOf) {
-            $instanceOfId = $instanceOf['mainsnak']['datavalue']['value']['id'];
-            if (in_array($instanceOfId, $supportedTypes)) {
-                $isSupported = true;
-                break;
-            }
-        }
-        if (!$isSupported) {
+        if (!self::isTypeSupported($wikidataEntity)) {
             throw new \InvalidArgumentException('Entity ' . $qId . ' is not a supported type');
         }
 
@@ -137,6 +129,17 @@ class WikidataImportService
                                             'name' => $text
                                         ]);
         }
+    }
+
+    public static function isTypeSupported(WikidataEntity $entity): bool {
+        $instancesOf = $entity->getClaims('P31');
+        foreach ($instancesOf as $instanceOf) {
+            $instanceOfId = $instanceOf['mainsnak']['datavalue']['value']['id'];
+            if (in_array($instanceOfId, self::SUPPORTED_TYPES)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
