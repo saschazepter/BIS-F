@@ -58,6 +58,9 @@ class TransportController extends Controller
                 $station = WikidataImportService::importStation($wikidataId);
                 Log::info('Saved Station from Wikidata.', [$station->only(['id', 'name', 'wikidata_id'])]);
                 $stations->push($station);
+            } catch (\InvalidArgumentException $exception) {
+                // ignore in frontend, just log for debugging
+                Log::debug('Could not import Station from Wikidata: ' . $exception->getMessage(), ['wikidataId' => $wikidataId]);
             } catch (\Exception $exception) {
                 report($exception);
             }

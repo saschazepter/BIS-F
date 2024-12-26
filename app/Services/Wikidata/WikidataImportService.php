@@ -14,6 +14,31 @@ class WikidataImportService
     public static function importStation(string $qId): Station {
         $wikidataEntity = WikidataEntity::fetch($qId);
 
+        // check if entity is a supported type
+        $instancesOf    = $wikidataEntity->getClaims('P31');
+        $supportedTypes = [
+            'Q55490', // Durchgangsbahnhof
+            'Q18543139', // Hauptbahnhof
+            'Q27996466', // Bahnhof (betrieblich)
+            'Q55488', // Bahnhof (Verkehrsanlage einer Bahn)
+            'Q124817561', // Betriebsstelle
+            'Q644371', // internationaler Flughafen
+            'Q21836433', // Flughafen
+            'Q953806', // Bushaltestelle
+            'Q2175765', // Straßenbahnhaltestelle
+        ];
+        $isSupported    = false;
+        foreach ($instancesOf as $instanceOf) {
+            $instanceOfId = $instanceOf['mainsnak']['datavalue']['value']['id'];
+            if (in_array($instanceOfId, $supportedTypes)) {
+                $isSupported = true;
+                break;
+            }
+        }
+        if (!$isSupported) {
+            throw new \InvalidArgumentException('Entity ' . $qId . ' is not a supported type');
+        }
+
         $name = $wikidataEntity->getClaims('P1448')[0]['mainsnak']['datavalue']['value']['text'] //P1448 = official name
                 ?? $wikidataEntity->getLabel('de') //german label
                    ?? $wikidataEntity->getLabel(); //english label or null if also not available
