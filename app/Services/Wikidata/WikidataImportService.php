@@ -2,6 +2,7 @@
 
 namespace App\Services\Wikidata;
 
+use App\Dto\Coordinate;
 use App\Dto\Wikidata\WikidataEntity;
 use App\Exceptions\Wikidata\FetchException;
 use App\Models\Station;
@@ -39,16 +40,14 @@ class WikidataImportService
             throw new \InvalidArgumentException('No name found for entity ' . $qId);
         }
 
-        $coordinates = $wikidataEntity->getClaims('P625')[0]['mainsnak']['datavalue']['value'] ?? null; //P625 = coordinate location
+        $coordinates = self::getCoordinates($wikidataEntity);
         if ($coordinates === null) {
             throw new \InvalidArgumentException('No coordinates found for entity ' . $qId);
         }
 
-        $latitude  = $coordinates['latitude'];
-        $longitude = $coordinates['longitude'];
-        $ibnr      = $wikidataEntity->getClaims('P954')[0]['mainsnak']['datavalue']['value'] ?? null;    //P954 = IBNR
-        $rl100     = $wikidataEntity->getClaims('P8671')[0]['mainsnak']['datavalue']['value'] ?? null;   //P8671 = RL100
-        $ifopt     = $wikidataEntity->getClaims('P12393')[0]['mainsnak']['datavalue']['value'] ?? null;  //P12393 = IFOPT
+        $ibnr  = $wikidataEntity->getClaims('P954')[0]['mainsnak']['datavalue']['value'] ?? null;    //P954 = IBNR
+        $rl100 = $wikidataEntity->getClaims('P8671')[0]['mainsnak']['datavalue']['value'] ?? null;   //P8671 = RL100
+        $ifopt = $wikidataEntity->getClaims('P12393')[0]['mainsnak']['datavalue']['value'] ?? null;  //P12393 = IFOPT
         if ($ifopt !== null) {
             $splittedIfopt = explode(':', $ifopt);
         }
@@ -61,8 +60,8 @@ class WikidataImportService
         return Station::create(
             [
                 'name'          => $name,
-                'latitude'      => $latitude,
-                'longitude'     => $longitude,
+                'latitude'      => $coordinates->latitude,
+                'longitude'     => $coordinates->longitude,
                 'wikidata_id'   => $qId,
                 'rilIdentifier' => $rl100,
                 'ibnr'          => $ibnr,
@@ -140,6 +139,14 @@ class WikidataImportService
             }
         }
         return false;
+    }
+
+    public static function getCoordinates(WikidataEntity $entity): ?Coordinate {
+        $coordinates = $entity->getClaims('P625')[0]['mainsnak']['datavalue']['value'] ?? null; //P625 = coordinate location
+        if ($coordinates === null) {
+            return null;
+        }
+        return new Coordinate($coordinates['latitude'], $coordinates['longitude']);
     }
 
 }
