@@ -82,7 +82,7 @@ class CachedHafas extends Hafas implements DataProviderInterface
         );
     }
 
-    public function getStationsByFuzzyRilIdentifier(string $rilIdentifier): ?Collection {
+    public function getStationsByFuzzyRilIdentifier(string $rilIdentifier): Collection {
         $key = CacheKey::getHafasStationsFuzzyKey($rilIdentifier);
 
         return $this->remember(
