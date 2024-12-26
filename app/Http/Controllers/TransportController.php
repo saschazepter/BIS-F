@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 use App\DataProviders\DataProviderBuilder;
 use App\DataProviders\DataProviderInterface;
-use App\Exceptions\HafasException;
+use App\Http\Controllers\API\v1\ExperimentalController;
 use App\Http\Resources\StationResource;
 use App\Models\Checkin;
 use App\Models\PolyLine;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\Wikidata\WikidataImportService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @deprecated Content will be moved to the backend/frontend/API packages soon, please don't add new functions here!
@@ -32,21 +34,36 @@ class TransportController extends Controller
      * @param string $query
      *
      * @return Collection
-     * @throws HafasException
      * @api v1
      */
     public function getTrainStationAutocomplete(string $query): Collection {
         if (!is_numeric($query) && strlen($query) <= 5 && ctype_upper($query)) {
             $stations = $this->dataProvider->getStationsByFuzzyRilIdentifier(rilIdentifier: $query);
-        }
-
-        if (!isset($stations) || $stations[0] === null) {
+        } elseif (preg_match('/^Q\d+$/', $query)) {
+            $stations = self::getStationsByWikidataId($query);
+        } elseif (!isset($stations) || $stations[0] === null) {
             $stations = $this->dataProvider->getStations($query);
         }
-
         return $stations->map(function(Station $station) {
             return new StationResource($station);
         });
+    }
+
+    private static function getStationsByWikidataId(string $wikidataId): Collection {
+        $stations = Station::where('wikidata_id', $wikidataId)->get();
+
+        if ($stations->isEmpty() && ExperimentalController::checkGeneralRateLimit() && ExperimentalController::checkWikidataIdRateLimit($wikidataId)) {
+            try {
+                Log::debug('Lookup Wikidata ID as User searched it', ['wikidataId' => $wikidataId]);
+                $station = WikidataImportService::importStation($wikidataId);
+                Log::info('Saved Station from Wikidata.', [$station->only(['id', 'name', 'wikidata_id'])]);
+                $stations->push($station);
+            } catch (\Exception $exception) {
+                report($exception);
+            }
+        }
+
+        return $stations;
     }
 
     /**

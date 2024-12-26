@@ -38,7 +38,7 @@ class ExperimentalController extends Controller
         }
     }
 
-    private static function checkGeneralRateLimit(): bool {
+    public static function checkGeneralRateLimit(): bool {
         $key = "fetch-wikidata-user:" . auth()->id();
         if (RateLimiter::tooManyAttempts($key, 20)) {
             return false;
@@ -51,6 +51,17 @@ class ExperimentalController extends Controller
         // request a station 1 time per 5 minutes
 
         $key = "fetch-wikidata-station:$stationId";
+        if (RateLimiter::tooManyAttempts($key, 1)) {
+            return false;
+        }
+        RateLimiter::increment($key, 5 * 60);
+        return true;
+    }
+
+    public static function checkWikidataIdRateLimit(string $qId) {
+        // request a wikidata id 1 time per 5 minutes
+
+        $key = "fetch-wikidata-qid:$qId";
         if (RateLimiter::tooManyAttempts($key, 1)) {
             return false;
         }
