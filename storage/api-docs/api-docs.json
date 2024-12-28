@@ -4359,7 +4359,7 @@
                 ]
             }
         },
-        "/user/search/{query}": {
+        "/user/search/{?query}": {
             "get": {
                 "tags": [
                     "User"
@@ -4371,7 +4371,7 @@
                     {
                         "name": "query",
                         "in": "path",
-                        "description": "username",
+                        "description": "If this is given, the search will be performed on the username and (display)name (or-search)",
                         "example": "Gertrud123"
                     },
                     {
@@ -4382,6 +4382,16 @@
                         "schema": {
                             "type": "integer"
                         }
+                    },
+                    {
+                        "name": "username",
+                        "in": "query",
+                        "description": "Search for Username"
+                    },
+                    {
+                        "name": "name",
+                        "in": "query",
+                        "description": "Search for parts of users (display)name"
                     }
                 ],
                 "responses": {
