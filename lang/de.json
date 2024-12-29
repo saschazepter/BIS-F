@@ -819,5 +819,14 @@
     "welcome.stats.million": "Millionen",
     "welcome.stats.distance": "kilometer gereist",
     "welcome.stats.registered": "Registrierte user",
-    "welcome.stats.duration": "Jahre Reisezeit"
+    "welcome.stats.duration": "Jahre Reisezeit",
+    "trip-info.title": ":linename am :date",
+    "trip-info.stopovers": "Zwischenhalte",
+    "trip-info.stopover": "Zwischenhalt",
+    "trip-info.departure": "Abfahrt",
+    "trip-info.arrival": "Ankunft",
+    "trip-info.in-this-connection": "In dieser Verbindung",
+    "trip-info.user": "User",
+    "trip-info.origin": "Abfahrtsort",
+    "trip-info.destination": "Zielort"
 }

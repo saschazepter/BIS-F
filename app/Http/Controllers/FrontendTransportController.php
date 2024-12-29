@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\DataProviders\Hafas;
 use App\Exceptions\HafasException;
 use App\Http\Controllers\TransportController as TransportBackend;
+use App\Models\Trip;
 use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 /**
  * @deprecated Content will be moved to the backend/frontend/API packages soon, please don't add new functions here!
@@ -21,5 +23,11 @@ class FrontendTransportController extends Controller
         } catch (HafasException $e) {
             abort(503, $e->getMessage());
         }
+    }
+
+    public function getTrip(int $tripId): View {
+        return view('trip-info', [
+            'trip' => Trip::findOrFail($tripId)
+        ]);
     }
 }
