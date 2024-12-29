@@ -18,6 +18,7 @@ use App\Models\Status;
 use App\Models\Stopover;
 use App\Models\Trip;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
-use OpenApi\Annotations as OA;
 
 class StatusController extends Controller
 {
@@ -252,6 +252,60 @@ class StatusController extends Controller
     }
 
     /**
+     * Experimental - do not add to docs now.
+     *
+     * Used in Lokbuch for testing.
+     */
+    public function list(Request $request): AnonymousResourceCollection {
+        $validated = $request->validate([
+                                            'body' => ['nullable', 'string', 'max:32'],
+                                        ]);
+
+        $user  = auth()->user();
+        $query = Status::query()->orderByDesc('created_at');
+
+        if (isset($validated['body'])) {
+            $query->where('body', 'like', '%' . $validated['body'] . '%');
+        }
+
+        //TODO: check if user is allowed to see this status
+
+        $query->join('train_checkins', 'train_checkins.status_id', '=', 'statuses.id')
+              ->join('users', 'statuses.user_id', '=', 'users.id')
+              ->where(function(Builder $query) use ($user) {
+                  //Visibility checks: One of the following options must be true
+
+                  //Option 1: User is public AND status is public
+                  $query->where(function(Builder $query) {
+                      $query->where('users.private_profile', 0)
+                            ->whereIn('visibility', [
+                                StatusVisibility::PUBLIC->value,
+                                StatusVisibility::AUTHENTICATED->value
+                            ]);
+                  });
+
+                  //Option 2: Status is from oneself
+                  $query->orWhere('users.id', $user->id);
+
+                  //Option 3: Status is from a followed BUT not unlisted or private
+                  $query->orWhere(function(Builder $query) use ($user) {
+                      $query->whereIn('users.id', $user->follows()->select('follow_id'))
+                            ->whereNotIn('statuses.visibility', [
+                                StatusVisibility::UNLISTED->value,
+                                StatusVisibility::PRIVATE->value,
+                            ]);
+                  });
+              })
+              ->where('train_checkins.departure', '<', \Carbon\Carbon::now()->addMinutes(20))
+              ->whereNotIn('statuses.user_id', $user->mutedUsers()->select('muted_id'))
+              ->whereNotIn('statuses.user_id', $user->blockedUsers()->select('blocked_id'))
+              ->whereNotIn('statuses.user_id', $user->blockedByUsers()->select('user_id'))
+              ->select('statuses.*');
+
+        return StatusResource::collection($query->cursorPaginate(20));
+    }
+
+    /**
      * @OA\Get(
      *      path="/status/{id}",
      *      operationId="getSingleStatus",
@@ -419,7 +473,7 @@ class StatusController extends Controller
             $this->authorize('update', $status);
 
             //Check for disallowed status visibility changes
-            if(auth()->user()->can('disallow-status-visibility-change') && $validated['visibility'] !== StatusVisibility::PRIVATE->value) {
+            if (auth()->user()->can('disallow-status-visibility-change') && $validated['visibility'] !== StatusVisibility::PRIVATE->value) {
                 return $this->sendError('You are not allowed to change the visibility to anything else than private', 403);
             }
 
