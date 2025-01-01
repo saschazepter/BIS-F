@@ -268,35 +268,10 @@ class StatusController extends Controller
             $query->where('body', 'like', '%' . $validated['body'] . '%');
         }
 
-        //TODO: check if user is allowed to see this status
-
         $query->join('train_checkins', 'train_checkins.status_id', '=', 'statuses.id')
               ->join('users', 'statuses.user_id', '=', 'users.id')
-              ->where(function(Builder $query) use ($user) {
-                  //Visibility checks: One of the following options must be true
-
-                  //Option 1: User is public AND status is public
-                  $query->where(function(Builder $query) {
-                      $query->where('users.private_profile', 0)
-                            ->whereIn('visibility', [
-                                StatusVisibility::PUBLIC->value,
-                                StatusVisibility::AUTHENTICATED->value
-                            ]);
-                  });
-
-                  //Option 2: Status is from oneself
-                  $query->orWhere('users.id', $user->id);
-
-                  //Option 3: Status is from a followed BUT not unlisted or private
-                  $query->orWhere(function(Builder $query) use ($user) {
-                      $query->whereIn('users.id', $user->follows()->select('follow_id'))
-                            ->whereNotIn('statuses.visibility', [
-                                StatusVisibility::UNLISTED->value,
-                                StatusVisibility::PRIVATE->value,
-                            ]);
-                  });
-              })
-              ->where('train_checkins.departure', '<', \Carbon\Carbon::now()->addMinutes(20))
+              ->where(\App\Http\Controllers\Backend\Transport\StatusController::filterStatusVisibility($user))
+              ->where('train_checkins.departure', '<', now()->addMinutes(20))
               ->whereNotIn('statuses.user_id', $user->mutedUsers()->select('muted_id'))
               ->whereNotIn('statuses.user_id', $user->blockedUsers()->select('blocked_id'))
               ->whereNotIn('statuses.user_id', $user->blockedByUsers()->select('user_id'))
