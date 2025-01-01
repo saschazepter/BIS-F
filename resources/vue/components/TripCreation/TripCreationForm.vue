@@ -248,7 +248,7 @@ export default {
                     </div>
                     <div class="col">
                         <select class="form-select" v-model="form.operatorId">
-                            <option selected>{{ trans("trip_creation.form.operator") }}</option>
+                            <option selected>{{ trans("export.title.operator") }}</option>
                             <option v-for="operator in operators" :value="operator.id">{{ operator.name }}</option>
                         </select>
                     </div>
