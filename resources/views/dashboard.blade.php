@@ -108,8 +108,9 @@
                     </div>
                 @endif
 
-                @include('includes.statuses', ['statuses' => $statuses, 'showDates' => true])
-                {{ $statuses->links() }}
+                <div id="vue-container-admin-dashboard">
+                    <dashboard></dashboard>
+                </div>
 
                 @if($showGlobalButton)
                     <div class="alert alert-info">

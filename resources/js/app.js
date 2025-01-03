@@ -15,6 +15,7 @@ import "./components/maps";
 import CheckinSuccessHelper from "../vue/components/CheckinSuccessHelper.vue";
 import {i18nVue} from "laravel-vue-i18n";
 import TagHelper from "../vue/components/TagHelper.vue";
+import Dashboard from "../vue/components/status/Dashboard.vue";
 import TripCreationForm from "../vue/components/TripCreation/TripCreationForm.vue";
 import {createPinia} from 'pinia'
 import piniaPluginPersistedsState from 'pinia-plugin-persistedstate'
@@ -117,7 +118,13 @@ document.addEventListener("DOMContentLoaded", function () {
         app7.use(i18nVue, i18nOptions);
         app7.use(pinia);
         app7.mount("#settings-friend-checkin");
+    }
 
+    if(document.getElementById('vue-container-admin-dashboard')) {
+        const app8 = createApp({});
+        app8.component('dashboard', Dashboard);
+        app8.use(i18nVue, i18nOptions);
+        app8.mount('#vue-container-admin-dashboard');
     }
 });
 
