@@ -7,6 +7,7 @@ use App\Enum\ReiseloesungCategory;
 use App\Enum\TripSource;
 use App\Http\Controllers\Controller;
 use App\Models\Station;
+use App\Models\Stopover;
 use App\Models\Trip;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -103,6 +104,22 @@ abstract class BahnWebApiController extends Controller
                                         'arrival'        => $arrival,
                                         'source'         => TripSource::BAHN_WEB_API,
                                     ]);
+
+            foreach ($rawJourney['halte'] as $stopovers) {
+                $station = self::getStationFromHalt($stopovers);
+                Stopover::updateOrCreate(
+                    [
+                        'trip_id'           => $rawDeparture['journeyId'],
+                        'train_station_id'  => $station->id,
+                        'arrival_planned'   => isset($stopovers['ankunftsZeitpunkt']) ? Carbon::parse($stopovers['ankunftsZeitpunkt']) : null,
+                        'departure_planned' => isset($stopovers['abfahrtsZeitpunkt']) ? Carbon::parse($stopovers['abfahrtsZeitpunkt']) : null,
+                    ],
+                    [
+                        'arrival_real'   => isset($stopovers['ezAnkunftsZeitpunkt']) ? Carbon::parse($stopovers['ezAnkunftsZeitpunkt']) : null,
+                        'departure_real' => isset($stopovers['ezAbfahrtsZeitpunkt']) ? Carbon::parse($stopovers['ezAbfahrtsZeitpunkt']) : null,
+                    ]
+                );
+            }
 
             $departures->push(new Departure(
                                   station:          $station,
