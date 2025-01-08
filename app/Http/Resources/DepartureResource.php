@@ -54,7 +54,7 @@ class DepartureResource extends JsonResource
                 "adminCode"   => "80____",
                 "productName" => $this->trip->linename, //TODO
                 "mode"        => "train", //TODO
-                "product"     => self::estimateType($this->trip->linename), //not the best, but it works for now
+                "product"     => $this->trip->category,
                 "operator"    => null,/*[ //TODO
                     "type" => "operator",
                     "id"   => "db-fernverkehr-ag",
@@ -95,30 +95,5 @@ class DepartureResource extends JsonResource
             "loadFactor"          => null,
             "station"             => new StationResource($this->station)
         ];
-    }
-
-    private static function estimateType(string $linename): string {
-        if(str_contains($linename, 'ICE') || str_contains($linename, 'IC') || str_contains($linename, 'EC')) {
-            return "nationalExpress";
-        }
-        if(str_contains($linename, 'RE') || str_contains($linename, 'RB')) {
-            return "regional";
-        }
-        if(str_contains($linename, 'S')) {
-            return "suburban";
-        }
-        if(str_contains($linename, 'Bus')) {
-            return "bus";
-        }
-        if(str_contains($linename, 'Ferry')) {
-            return "ferry";
-        }
-        if(str_contains($linename, 'U')) {
-            return "subway";
-        }
-        if(str_contains($linename, 'Tram') || str_contains($linename, 'STR')) {
-            return "tram";
-        }
-        return "national";
     }
 }

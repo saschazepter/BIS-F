@@ -3,26 +3,26 @@
 namespace App\Http\Controllers\Backend\Transport;
 
 use App\Dto\Transport\Departure;
-use App\Enum\HafasTravelType;
+use App\Enum\ReiseloesungCategory;
 use App\Enum\TripSource;
 use App\Http\Controllers\Controller;
 use App\Models\Station;
 use App\Models\Stopover;
 use App\Models\Trip;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
-abstract class BahnWebApiController extends Controller {
+abstract class BahnWebApiController extends Controller
+{
 
     public static function searchStation(string $query, int $limit = 10): Collection {
         $url      = "https://www.bahn.de/web/api/reiseloesung/orte?suchbegriff=" . urlencode($query) . "&typ=ALL&limit=" . $limit;
         $response = Http::get($url);
         $json     = $response->json();
         $extIds   = [];
-        foreach($json as $rawStation) {
-            if(!isset($rawStation['extId'])) {
+        foreach ($json as $rawStation) {
+            if (!isset($rawStation['extId'])) {
                 continue;
             }
             $extIds[] = $rawStation['extId'];
@@ -30,12 +30,12 @@ abstract class BahnWebApiController extends Controller {
         $stationCache = Station::whereIn('ibnr', $extIds)->get();
 
         $stations = collect();
-        foreach($json as $rawStation) {
-            if(!isset($rawStation['extId'])) {
+        foreach ($json as $rawStation) {
+            if (!isset($rawStation['extId'])) {
                 continue;
             }
             $station = $stationCache->where('ibnr', $rawStation['extId'])->first();
-            if($station === null) {
+            if ($station === null) {
                 $station = Station::create([
                                                'name'      => $rawStation['name'],
                                                'latitude'  => $rawStation['lat'],
@@ -52,7 +52,7 @@ abstract class BahnWebApiController extends Controller {
 
     public static function getDepartures(Station $station, Carbon|null $timestamp = null): Collection {
         $timezone = "Europe/Berlin";
-        if($timestamp === null) {
+        if ($timestamp === null) {
             $timestamp = now();
         }
         $timestamp->tz($timezone);
@@ -62,9 +62,9 @@ abstract class BahnWebApiController extends Controller {
             'zeit'     => $timestamp->format('H:i'),
         ]);
         $departures = collect();
-        foreach($response->json('entries') as $rawDeparture) {
+        foreach ($response->json('entries') as $rawDeparture) {
             $journey = Trip::where('trip_id', $rawDeparture['journeyId'])->first();
-            if($journey) {
+            if ($journey) {
                 $departures->push(new Departure(
                                       station:          $station,
                                       plannedDeparture: Carbon::parse($rawDeparture['zeit'], $timezone),
@@ -75,7 +75,7 @@ abstract class BahnWebApiController extends Controller {
             }
 
             $rawJourney = self::fetchJourney($rawDeparture['journeyId']);
-            if($rawJourney === null) {
+            if ($rawJourney === null) {
                 // sorry
                 continue;
             }
@@ -84,13 +84,20 @@ abstract class BahnWebApiController extends Controller {
             $destinationStation = self::getStationFromHalt($rawJourney['halte'][count($rawJourney['halte']) - 1]);
             $departure          = isset($rawJourney['halte'][0]['abfahrtsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][0]['abfahrtsZeitpunkt'], $timezone) : null;
             $arrival            = isset($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt'], $timezone) : null;
+            $category           = isset($rawDeparture['verkehrmittel']['produktGattung']) ? ReiseloesungCategory::tryFrom($rawDeparture['verkehrmittel']['produktGattung']) : ReiseloesungCategory::UNKNOWN;
+            $category           = $category ?? ReiseloesungCategory::UNKNOWN;
+
+            //trip
+            $tripLineName      = $rawDeparture['verkehrmittel']['name'] ?? '';
+            $tripNumber        = preg_replace('/\s/', '-', strtolower($tripLineName)) ?? '';
+            $tripJourneyNumber = preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']);
 
             $journey = Trip::create([
                                         'trip_id'        => $rawDeparture['journeyId'],
-                                        'category'       => HafasTravelType::UNKNOWN, //TODO
-                                        'number'         => preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']),
-                                        'linename'       => $rawDeparture['verkehrmittel']['name'] ?? '',
-                                        'journey_number' => (int)preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']),
+                                        'category'       => $category->getHTT(),
+                                        'number'         => $tripNumber,
+                                        'linename'       => $tripLineName,
+                                        'journey_number' => !empty($tripJourneyNumber) ? $tripJourneyNumber : 0,
                                         'operator_id'    => null, //TODO
                                         'origin_id'      => $originStation->id,
                                         'destination_id' => $destinationStation->id,
@@ -132,7 +139,7 @@ abstract class BahnWebApiController extends Controller {
 
     private static function getStationFromHalt(array $rawHalt) {
         $station = Station::where('ibnr', $rawHalt['extId'])->first();
-        if($station !== null) {
+        if ($station !== null) {
             return $station;
         }
 
