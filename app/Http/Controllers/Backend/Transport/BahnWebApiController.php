@@ -51,6 +51,7 @@ abstract class BahnWebApiController extends Controller {
     }
 
     public static function getDepartures(Station $station, Carbon|null $timestamp = null): Collection {
+        $timezone = "Europe/Berlin";
         if($timestamp === null) {
             $timestamp = now();
         }
@@ -65,8 +66,8 @@ abstract class BahnWebApiController extends Controller {
             if($journey) {
                 $departures->push(new Departure(
                                       station:          $station,
-                                      plannedDeparture: Carbon::parse($rawDeparture['zeit']),
-                                      realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit']) : null,
+                                      plannedDeparture: Carbon::parse($rawDeparture['zeit'], $timezone),
+                                      realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit'], $timezone) : null,
                                       trip:             $journey,
                                   ));
                 continue;
@@ -80,8 +81,8 @@ abstract class BahnWebApiController extends Controller {
 
             $originStation      = self::getStationFromHalt($rawJourney['halte'][0]);
             $destinationStation = self::getStationFromHalt($rawJourney['halte'][count($rawJourney['halte']) - 1]);
-            $departure          = isset($rawJourney['halte'][0]['abfahrtsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][0]['abfahrtsZeitpunkt']) : null;
-            $arrival            = isset($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) : null;
+            $departure          = isset($rawJourney['halte'][0]['abfahrtsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][0]['abfahrtsZeitpunkt'], $timezone) : null;
+            $arrival            = isset($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt'], $timezone) : null;
 
             $journey = Trip::create([
                                         'trip_id'        => $rawDeparture['journeyId'],
@@ -102,10 +103,10 @@ abstract class BahnWebApiController extends Controller {
             foreach($rawJourney['halte'] as $rawHalt) {
                 $station = self::getStationFromHalt($rawHalt);
 
-                $departurePlanned = isset($rawHalt['abfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['abfahrtsZeitpunkt']) : null;
-                $departureReal    = isset($rawHalt['ezAbfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['ezAbfahrtsZeitpunkt']) : null;
-                $arrivalPlanned   = isset($rawHalt['ankunftsZeitpunkt']) ? Carbon::parse($rawHalt['ankunftsZeitpunkt']) : null;
-                $arrivalReal      = isset($rawHalt['ezAnkunftsZeitpunkt']) ? Carbon::parse($rawHalt['ezAnkunftsZeitpunkt']) : null;
+                $departurePlanned = isset($rawHalt['abfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['abfahrtsZeitpunkt'], $timezone) : null;
+                $departureReal    = isset($rawHalt['ezAbfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['ezAbfahrtsZeitpunkt'], $timezone) : null;
+                $arrivalPlanned   = isset($rawHalt['ankunftsZeitpunkt']) ? Carbon::parse($rawHalt['ankunftsZeitpunkt'], $timezone) : null;
+                $arrivalReal      = isset($rawHalt['ezAnkunftsZeitpunkt']) ? Carbon::parse($rawHalt['ezAnkunftsZeitpunkt'], $timezone) : null;
 
                 $stopover = new Stopover([
                                              'train_station_id'  => $station->id,
@@ -120,8 +121,8 @@ abstract class BahnWebApiController extends Controller {
 
             $departures->push(new Departure(
                                   station:          $station,
-                                  plannedDeparture: Carbon::parse($rawDeparture['zeit']),
-                                  realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit']) : null,
+                                  plannedDeparture: Carbon::parse($rawDeparture['zeit'], $timezone),
+                                  realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit'], $timezone) : null,
                                   trip:             $journey,
                               ));
         }
