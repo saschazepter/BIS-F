@@ -14,6 +14,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * // properties
  * @property int         $id
  * @property int|null    $ibnr
+ * @property string|null $transitous_id
  * @property string      $rilIdentifier
  * @property string      $name
  * @property double      $latitude
@@ -40,7 +41,7 @@ class Station extends Model
 
     protected $table    = 'train_stations';
     protected $fillable = [
-        'ibnr', 'wikidata_id', 'rilIdentifier',
+        'ibnr', 'wikidata_id', 'rilIdentifier', 'transitous_id',
         'ifopt_a', 'ifopt_b', 'ifopt_c', 'ifopt_d', 'ifopt_e',
         'name', 'latitude', 'longitude', 'source', 'time_offset', 'shift_time'
     ];
@@ -49,6 +50,7 @@ class Station extends Model
         'id'            => 'integer',
         'ibnr'          => 'integer',
         'wikidata_id'   => 'string',
+        'transitous_id' => 'string',
         'ifopt_a'       => 'string',
         'ifopt_b'       => 'integer',
         'ifopt_c'       => 'integer',

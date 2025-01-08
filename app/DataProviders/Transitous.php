@@ -25,12 +25,12 @@ use Illuminate\Support\Facades\Log;
 use JsonException;
 use PDOException;
 
-class Hafas extends Controller implements DataProviderInterface
+class Transitous extends Controller implements DataProviderInterface
 {
 
     private function client(): PendingRequest {
-        return Http::baseUrl(config('trwl.db_rest'))
-                   ->timeout(config('trwl.db_rest_timeout'));
+        return Http::baseUrl(config('trwl.transitous_url'))
+                   ->timeout(config('trwl.transitous_timeout'));
     }
 
     public function getStationByRilIdentifier(string $rilIdentifier): ?Station {
@@ -40,9 +40,42 @@ class Hafas extends Controller implements DataProviderInterface
         }
 
         try {
-            $response = $this->client()->get("/stations/$rilIdentifier");
+            /**
+             * {
+             * "destination": {
+             * "type": "Module",
+             * "target": "/guesser"
+             * },
+             * "content_type": "StationGuesserRequest",
+             * "content": {
+             * "input": "Lauda Bahn",
+             * "guess_count": 6
+             * }
+             * }
+             */
+            $response = $this->client()->post(
+                "?elm=StationSuggestions",
+                [
+                    'destination'  => [
+                        'type'   => 'Module',
+                        'target' => '/guesser'
+                    ],
+                    'content_type' => 'StationGuesserRequest',
+                    'content'      => [
+                        'input'       => $rilIdentifier,
+                        'guess_count' => 10
+                    ],
+                    'content_type' => 'StationGuesserRequest',
+                    'content'      => [
+                        'input'       => $rilIdentifier,
+                        'guess_count' => 10
+                    ]
+                ]
+            );
+
             if ($response->ok() && !empty($response->body()) && $response->body() !== '[]') {
-                $data    = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
+                $data = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
+                dd($data);
                 $station = StationRepository::parseHafasStopObject($data);
                 CacheKey::increment(HCK::STATIONS_SUCCESS);
             } else {
@@ -73,29 +106,52 @@ class Hafas extends Controller implements DataProviderInterface
      */
     public function getStations(string $query, int $results = 10): Collection {
         try {
+            /**
+             * {
+             * "destination": {
+             * "type": "Module",
+             * "target": "/guesser"
+             * },
+             * "content_type": "StationGuesserRequest",
+             * "content": {
+             * "input": "Lauda Bahn",
+             * "guess_count": 6
+             * }
+             * }
+             */
             $response = $this->client()->post(
-                "/locations",
+                "?elm=StationSuggestions",
                 [
-                    'query'     => $query,
-                    'fuzzy'     => 'true',
-                    'stops'     => 'true',
-                    'addresses' => 'false',
-                    'poi'       => 'false',
-                    'results'   => $results
+                    'destination'  => [
+                        'type'   => 'Module',
+                        'target' => '/guesser'
+                    ],
+                    'content_type' => 'StationGuesserRequest',
+                    'content'      => [
+                        'input'       => $query,
+                        'guess_count' => $results
+                    ],
+                    'content_type' => 'StationGuesserRequest',
+                    'content'      => [
+                        'input'       => $query,
+                        'guess_count' => $results
+                    ]
                 ]
             );
 
-            $data = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
             if (!$response->ok()) {
                 CacheKey::increment(HCK::LOCATIONS_NOT_OK);
             }
+
+            $data = json_decode($response->body(), false, 512, JSON_THROW_ON_ERROR);
+            $data = $data->content->guesses;
 
             if (empty($data) || !$response->ok()) {
                 return Collection::empty();
             }
 
             CacheKey::increment(HCK::LOCATIONS_SUCCESS);
-            return Repositories\StationRepository::parseHafasStops($data);
+            return Repositories\TransitousStationRepository::parseTransitousStops($data);
         } catch (JsonException $exception) {
             throw new HafasException($exception->getMessage());
         } catch (Exception $exception) {

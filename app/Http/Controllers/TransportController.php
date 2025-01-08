@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\DataProviders\DataProviderBuilder;
 use App\DataProviders\DataProviderInterface;
-use App\Exceptions\HafasException;
 use App\Http\Controllers\API\v1\ExperimentalController;
 use App\Http\Controllers\Backend\Transport\BahnWebApiController;
 use App\Http\Resources\StationResource;
@@ -28,8 +27,8 @@ class TransportController extends Controller
      * @template T of DataProviderInterface
      * @param class-string<T> $dataProvider
      */
-    public function __construct(string $dataProvider) {
-        $this->dataProvider = (new DataProviderBuilder())->build($dataProvider);
+    public function __construct() {
+        $this->dataProvider = (new DataProviderBuilder())->build();
     }
 
     /**
@@ -45,11 +44,7 @@ class TransportController extends Controller
             $stations = self::getStationsByWikidataId($query);
         } elseif (!isset($stations) || $stations[0] === null) {
             $stations = null;
-            try {
-                $stations = $this->dataProvider->getStations($query);
-            } catch (HafasException) {
-
-            }
+            $stations = $this->dataProvider->getStations($query);
             if ($stations === null || $stations->isEmpty()) {
                 $stations = BahnWebApiController::searchStation($query);
             }

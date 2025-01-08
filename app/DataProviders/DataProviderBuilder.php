@@ -9,6 +9,6 @@ class DataProviderBuilder
             return new CachedHafas();
         }
 
-        return new Hafas();
+        return new Transitous();
     }
 }

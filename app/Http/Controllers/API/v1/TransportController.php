@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\API\v1;
 
-use App\DataProviders\Hafas;
 use App\Dto\Transport\Station as StationDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
@@ -32,6 +31,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Enum;
+use Psr\Container\NotFoundExceptionInterface;
 
 class TransportController extends Controller
 {
@@ -529,9 +529,9 @@ class TransportController extends Controller
      */
     public function getTrainStationAutocomplete(string $query): JsonResponse {
         try {
-            $trainAutocompleteResponse = (new TransportBackend(Hafas::class))->getTrainStationAutocomplete($query);
+            $trainAutocompleteResponse = (new TransportBackend())->getTrainStationAutocomplete($query);
             return $this->sendResponse($trainAutocompleteResponse);
-        } catch (HafasException) {
+        } catch (NotFoundExceptionInterface) {
             return $this->sendError("There has been an error with our data provider", 503);
         }
     }

@@ -25,17 +25,21 @@ return [
     'db_rest'                   => env('DB_REST', 'https://v5.db.transport.rest/'),
     'db_rest_timeout'           => env('DB_REST_TIMEOUT', 3),
 
+    # Transitous
+    'transitous_url'            => env('TRANSITOUS_URL', 'https://routing.spline.de/api/'),
+    'transitous_timeout'        => env('TRANSITOUS_TIMEOUT', 3),
+
     # Points
     'base_points'               => [
         'time_window' => [
             # time windows before and after a journey to get points
             'good_enough' => [
-                'before' => (int)env('GOOD_ENOUGH_POINTS_MIN_BEFORE', 60),
-                'after'  => (int)env('GOOD_ENOUGH_POINTS_MIN_AFTER', 60),
+                'before' => (int) env('GOOD_ENOUGH_POINTS_MIN_BEFORE', 60),
+                'after'  => (int) env('GOOD_ENOUGH_POINTS_MIN_AFTER', 60),
             ],
             'in_time'     => [
-                'before' => (int)env('FULL_POINTS_MIN_BEFORE', 20),
-                'after'  => (int)env('FULL_POINTS_MIN_AFTER', 10),
+                'before' => (int) env('FULL_POINTS_MIN_BEFORE', 20),
+                'after'  => (int) env('FULL_POINTS_MIN_AFTER', 10),
             ],
         ],
         'train'       => [

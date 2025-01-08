@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 use PDOException;
 use stdClass;
 
-class StationRepository
+class TransitousStationRepository
 {
 
     /**
@@ -60,21 +60,21 @@ class StationRepository
         foreach ($transitousResponse as $transitousStation) {
             $payload[] = [
                 'transitous_id' => $transitousStation->id,
-                'name'      => $transitousStation->name,
-                'latitude'  => $transitousStation?->pos?->lat,
-                'longitude' => $transitousStation?->pos?->lon,
+                'name'          => $transitousStation->name,
+                'latitude'      => $transitousStation?->pos?->lat ?? 0,
+                'longitude'     => $transitousStation?->pos?->lon ?? 0,
             ];
         }
         return self::upsertStations($payload);
     }
 
     public static function upsertStations(array $payload) {
-        $ibnrs = array_column($payload, 'ibnr');
+        $ibnrs = array_column($payload, 'transitous_id');
         if (empty($ibnrs)) {
             return new Collection();
         }
-        Station::upsert($payload, ['ibnr'], ['name', 'latitude', 'longitude']);
-        return Station::whereIn('ibnr', $ibnrs)->get()
+        Station::upsert($payload, ['transitous_id'], ['name', 'latitude', 'longitude']);
+        return Station::whereIn('transitous_id', $ibnrs)->get()
                       ->sortBy(function(Station $station) use ($ibnrs) {
                           return array_search($station->ibnr, $ibnrs);
                       })
