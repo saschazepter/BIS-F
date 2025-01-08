@@ -54,7 +54,7 @@ class DepartureResource extends JsonResource
                 "adminCode"   => "80____",
                 "productName" => $this->trip->linename, //TODO
                 "mode"        => "train", //TODO
-                "product"     => "national", //TODO
+                "product"     => $this->trip->category,
                 "operator"    => null,/*[ //TODO
                     "type" => "operator",
                     "id"   => "db-fernverkehr-ag",

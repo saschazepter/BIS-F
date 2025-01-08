@@ -15,7 +15,6 @@ namespace App\Enum;
  */
 enum HafasTravelType: string
 {
-    case UNKNOWN          = 'unknown';
     case NATIONAL_EXPRESS = 'nationalExpress';
     case NATIONAL         = 'national';
     case REGIONAL_EXP     = 'regionalExp';
