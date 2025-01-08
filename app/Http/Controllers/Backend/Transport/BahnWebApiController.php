@@ -7,6 +7,7 @@ use App\Enum\HafasTravelType;
 use App\Enum\TripSource;
 use App\Http\Controllers\Controller;
 use App\Models\Station;
+use App\Models\Stopover;
 use App\Models\Trip;
 use App\Models\User;
 use Carbon\Carbon;
@@ -96,6 +97,26 @@ abstract class BahnWebApiController extends Controller {
                                         'arrival'        => $arrival,
                                         'source'         => TripSource::BAHN_WEB_API,
                                     ]);
+
+            $stopovers = collect();
+            foreach($rawJourney['halte'] as $rawHalt) {
+                $station = self::getStationFromHalt($rawHalt);
+
+                $departurePlanned = isset($rawHalt['abfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['abfahrtsZeitpunkt']) : null;
+                $departureReal    = isset($rawHalt['ezAbfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['ezAbfahrtsZeitpunkt']) : null;
+                $arrivalPlanned   = isset($rawHalt['ankunftsZeitpunkt']) ? Carbon::parse($rawHalt['ankunftsZeitpunkt']) : null;
+                $arrivalReal      = isset($rawHalt['ezAnkunftsZeitpunkt']) ? Carbon::parse($rawHalt['ezAnkunftsZeitpunkt']) : null;
+
+                $stopover = new Stopover([
+                                             'train_station_id'  => $station->id,
+                                             'arrival_planned'   => $arrivalPlanned ?? $departurePlanned,
+                                             'arrival_real'      => $arrivalReal ?? $departureReal ?? null,
+                                             'departure_planned' => $departurePlanned ?? $arrivalPlanned,
+                                             'departure_real'    => $departureReal ?? $arrivalReal ?? null,
+                                         ]);
+                $stopovers->push($stopover);
+            }
+            $journey->stopovers()->saveMany($stopovers);
 
             $departures->push(new Departure(
                                   station:          $station,
