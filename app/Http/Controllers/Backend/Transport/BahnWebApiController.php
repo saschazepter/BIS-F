@@ -55,6 +55,7 @@ abstract class BahnWebApiController extends Controller {
         if($timestamp === null) {
             $timestamp = now();
         }
+        $timestamp->tz($timezone);
         $response   = Http::get("https://www.bahn.de/web/api/reiseloesung/abfahrten", [
             'ortExtId' => $station->ibnr,
             'datum'    => $timestamp->format('Y-m-d'),
