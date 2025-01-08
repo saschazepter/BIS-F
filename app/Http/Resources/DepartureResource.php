@@ -40,7 +40,7 @@ class DepartureResource extends JsonResource
             ],
             "when"                => $this->realDeparture?->toIso8601String(),
             "plannedWhen"         => $this->plannedDeparture->toIso8601String(),
-            "delay"               => null, //TODO: not necessary...?
+            "delay"               => $this->getDelay(), //TODO: make it deprecated
             "platform"            => null,
             "plannedPlatform"     => null,
             "direction"           => $this->trip->destinationStation->name,
