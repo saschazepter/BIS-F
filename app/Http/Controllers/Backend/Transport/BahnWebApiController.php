@@ -87,7 +87,7 @@ abstract class BahnWebApiController extends Controller {
                                         'category'       => HafasTravelType::UNKNOWN, //TODO
                                         'number'         => preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']),
                                         'linename'       => $rawDeparture['verkehrmittel']['name'] ?? '',
-                                        'journey_number' => preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']),
+                                        'journey_number' => (int)preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']),
                                         'operator_id'    => null, //TODO
                                         'origin_id'      => $originStation->id,
                                         'destination_id' => $destinationStation->id,
