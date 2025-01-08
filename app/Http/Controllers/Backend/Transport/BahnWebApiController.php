@@ -84,12 +84,17 @@ abstract class BahnWebApiController extends Controller
             $category           = isset($rawDeparture['verkehrmittel']['produktGattung']) ? ReiseloesungCategory::tryFrom($rawDeparture['verkehrmittel']['produktGattung']) : ReiseloesungCategory::UNKNOWN;
             $category           = $category ?? ReiseloesungCategory::UNKNOWN;
 
+            //trip
+            $tripLineName      = $rawDeparture['verkehrmittel']['name'] ?? '';
+            $tripNumber        = preg_replace('/\s/', '-', strtolower($tripLineName)) ?? '';
+            $tripJourneyNumber = preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']);
+
             $journey = Trip::create([
                                         'trip_id'        => $rawDeparture['journeyId'],
                                         'category'       => $category->getHTT(),
-                                        'number'         => preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']),
-                                        'linename'       => $rawDeparture['verkehrmittel']['name'] ?? '',
-                                        'journey_number' => preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']),
+                                        'number'         => $tripNumber,
+                                        'linename'       => $tripLineName,
+                                        'journey_number' => !empty($tripJourneyNumber) ? $tripJourneyNumber : 1337,
                                         'operator_id'    => null, //TODO
                                         'origin_id'      => $originStation->id,
                                         'destination_id' => $destinationStation->id,
