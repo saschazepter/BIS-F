@@ -74,6 +74,7 @@ class WikidataImportService
                 'ifopt_c'       => $splittedIfopt[2] ?? null,
                 'ifopt_d'       => $splittedIfopt[3] ?? null,
                 'ifopt_e'       => $splittedIfopt[4] ?? null,
+                'source'        => 'wikidata',
             ]
         );
     }
