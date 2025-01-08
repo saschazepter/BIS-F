@@ -11,6 +11,7 @@ use App\Exceptions\Checkin\AlreadyCheckedInException;
 use App\Exceptions\CheckInCollisionException;
 use App\Exceptions\HafasException;
 use App\Exceptions\StationNotOnTripException;
+use App\Http\Controllers\Backend\Transport\BahnWebApiController;
 use App\Http\Controllers\Backend\Transport\StationController;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\TransportController as TransportBackend;
@@ -176,6 +177,20 @@ class TransportController extends Controller
                             ]
             );
         } catch (HafasException) {
+            return $this->sendResponse(
+                data:       BahnWebApiController::getDepartures($station)->toArray(),
+                additional: [
+                                'meta' => [
+                                    'station' => StationDto::fromModel($station),
+                                    'times'   => [
+                                        'now'  => $timestamp,
+                                        'prev' => $timestamp->clone()->subMinutes(15),
+                                        'next' => $timestamp->clone()->addMinutes(15)
+                                    ],
+                                ]
+                            ]
+            );
+
             return $this->sendError(__('messages.exception.generalHafas', [], 'en'), 502);
         } catch (ModelNotFoundException) {
             return $this->sendError(__('controller.transport.no-station-found', [], 'en'));
