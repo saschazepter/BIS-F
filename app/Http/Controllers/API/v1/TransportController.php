@@ -16,6 +16,7 @@ use App\Http\Controllers\Backend\Transport\StationController;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\TransportController as TransportBackend;
 use App\Http\Resources\CheckinSuccessResource;
+use App\Http\Resources\DepartureResource;
 use App\Http\Resources\StationResource;
 use App\Http\Resources\TripResource;
 use App\Hydrators\CheckinRequestHydrator;
@@ -178,7 +179,7 @@ class TransportController extends Controller
             );
         } catch (HafasException) {
             return $this->sendResponse(
-                data:       BahnWebApiController::getDepartures($station)->toArray(),
+                data:       DepartureResource::collection(BahnWebApiController::getDepartures($station)),
                 additional: [
                                 'meta' => [
                                     'station' => StationDto::fromModel($station),

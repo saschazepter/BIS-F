@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Backend\Transport;
 
+use App\Dto\Transport\Departure;
 use App\Enum\HafasTravelType;
 use App\Enum\TripSource;
 use App\Http\Controllers\Controller;
@@ -61,7 +62,12 @@ abstract class BahnWebApiController extends Controller {
         foreach($response->json('entries') as $rawDeparture) {
             $journey = Trip::where('trip_id', $rawDeparture['journeyId'])->first();
             if($journey) {
-                $departures->push($journey);
+                $departures->push(new Departure(
+                                      station:          $station,
+                                      plannedDeparture: Carbon::parse($rawDeparture['zeit']),
+                                      realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit']) : null,
+                                      trip:             $journey,
+                                  ));
                 continue;
             }
 
@@ -71,10 +77,10 @@ abstract class BahnWebApiController extends Controller {
                 continue;
             }
 
-            $originStation = self::getStationFromHalt($rawJourney['halte'][0]);
+            $originStation      = self::getStationFromHalt($rawJourney['halte'][0]);
             $destinationStation = self::getStationFromHalt($rawJourney['halte'][count($rawJourney['halte']) - 1]);
-            $departure = isset($rawJourney['halte'][0]['abfahrtsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][0]['abfahrtsZeitpunkt']) : null;
-            $arrival = isset($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) : null;
+            $departure          = isset($rawJourney['halte'][0]['abfahrtsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][0]['abfahrtsZeitpunkt']) : null;
+            $arrival            = isset($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) : null;
 
             $journey = Trip::create([
                                         'trip_id'        => $rawDeparture['journeyId'],
@@ -90,7 +96,13 @@ abstract class BahnWebApiController extends Controller {
                                         'arrival'        => $arrival,
                                         'source'         => TripSource::BAHN_WEB_API,
                                     ]);
-            $departures->push($journey);
+
+            $departures->push(new Departure(
+                                  station:          $station,
+                                  plannedDeparture: Carbon::parse($rawDeparture['zeit']),
+                                  realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit']) : null,
+                                  trip:             $journey,
+                              ));
         }
         return $departures;
     }
@@ -105,16 +117,16 @@ abstract class BahnWebApiController extends Controller {
         // example id: A=1@O=Druseltal, Kassel@X=9414484@Y=51301106@U=81@L=714800@
         $matches = [];
         preg_match('/@X=(\d+)@Y=(\d+)/', $rawHalt['id'], $matches);
-        $latitude = $matches[2] / 1000000;
+        $latitude  = $matches[2] / 1000000;
         $longitude = $matches[1] / 1000000;
 
         return Station::create([
-                                       'name'      => $rawHalt['name'],
-                                       'latitude'  => $latitude ?? 0, // Hello Null-Island
-                                       'longitude' => $longitude ?? 0, // Hello Null-Island
-                                       'ibnr'      => $rawHalt['extId'],
-                                       'source'    => TripSource::BAHN_WEB_API->value,
-                                   ]);
+                                   'name'      => $rawHalt['name'],
+                                   'latitude'  => $latitude ?? 0, // Hello Null-Island
+                                   'longitude' => $longitude ?? 0, // Hello Null-Island
+                                   'ibnr'      => $rawHalt['extId'],
+                                   'source'    => TripSource::BAHN_WEB_API->value,
+                               ]);
     }
 
     public static function fetchJourney(string $journeyId, bool $poly = false): array|null {
