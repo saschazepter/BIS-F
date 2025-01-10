@@ -184,7 +184,7 @@ class Bahn extends Controller implements DataProviderInterface
                 $platformPlanned   = $rawDeparture['gleis'] ?? '';
                 $platformReal      = $rawDeparture['ezGleis'] ?? $platformPlanned;
                 try {
-                    $departureStation = Station::whereIn('ibnr', [$departureStopId])->get()->first();
+                    $departureStation = Station::where('ibnr', [$departureStopId])->first();
                     if ($departureStation === null) {
                         // if station does not exist, request it from API
                         $stationsFromApi = $this->getStations($departureStopId, 1);
