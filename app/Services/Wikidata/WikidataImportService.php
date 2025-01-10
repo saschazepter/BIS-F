@@ -21,12 +21,17 @@ class WikidataImportService
         'Q124817561', // Betriebsstelle
         'Q644371', // internationaler Flughafen
         'Q21836433', // Flughafen
+        'Q1335652', // airport railway station
+        'Q63979268', // people mover station
         'Q953806', // Bushaltestelle
         'Q2175765', // Straßenbahnhaltestelle
         'Q44782', // Hafen
         'Q15310171', // Seehafen
         'Q928830', //U-Bahnhof
         'Q22808403', // unterirdische Haltestelle
+        'Q55485', // dead-end railway station
+        'Q55491', // underground railway station
+        'Q7886778', // union station
     ];
 
     public static function importStation(string $qId): Station {
@@ -74,6 +79,7 @@ class WikidataImportService
                 'ifopt_c'       => $splittedIfopt[2] ?? null,
                 'ifopt_d'       => $splittedIfopt[3] ?? null,
                 'ifopt_e'       => $splittedIfopt[4] ?? null,
+                'source'        => 'wikidata',
             ]
         );
     }

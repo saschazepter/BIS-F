@@ -158,7 +158,9 @@ class TransportController extends Controller
                 when:      $timestamp,
                 type:      TravelType::tryFrom($validated['travelType'] ?? null),
                 localtime: isset($validated['when']) && !preg_match('(\+|Z)', $validated['when'])
-            )->sortBy(function($departure) {
+            );
+
+            $departures = $departures->sortBy(function($departure) {
                 return $departure->when ?? $departure->plannedWhen;
             });
 
@@ -181,7 +183,7 @@ class TransportController extends Controller
             return $this->sendError(__('controller.transport.no-station-found', [], 'en'));
         } catch (Exception $exception) {
             report($exception);
-            return $this->sendError('An unknown error occurred.', 500);
+            return $this->sendError('An unknown error occurred.', 500, null, $exception);
         }
     }
 
@@ -515,8 +517,14 @@ class TransportController extends Controller
         try {
             $trainAutocompleteResponse = (new TransportBackend(Hafas::class))->getTrainStationAutocomplete($query);
             return $this->sendResponse($trainAutocompleteResponse);
-        } catch (HafasException) {
-            return $this->sendError("There has been an error with our data provider", 503);
+        } catch (HafasException $e) {
+            // check if app is in debug mode
+            return $this->sendError(
+                "There has been an error with our data provider",
+                503,
+                null,
+                $e
+            );
         }
     }
 

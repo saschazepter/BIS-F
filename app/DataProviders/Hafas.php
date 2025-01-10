@@ -29,6 +29,8 @@ class Hafas extends Controller implements DataProviderInterface
 {
 
     private function client(): PendingRequest {
+        throw new Exception('Stop Hafas from Hafassing us.');
+
         return Http::baseUrl(config('trwl.db_rest'))
                    ->timeout(config('trwl.db_rest_timeout'));
     }

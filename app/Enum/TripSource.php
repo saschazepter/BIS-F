@@ -10,6 +10,8 @@ enum TripSource: string
      */
     case HAFAS = 'hafas';
 
+    case BAHN_WEB_API = 'bahn-web-api';
+
     /**
      * Trips created by the user - with manual data.
      */

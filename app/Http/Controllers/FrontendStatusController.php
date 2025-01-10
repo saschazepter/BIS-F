@@ -19,6 +19,7 @@ use Illuminate\View\View;
 class FrontendStatusController extends Controller
 {
     public function getDashboard(): Renderable|RedirectResponse {
+
         $statuses = DashboardController::getPrivateDashboard(auth()->user());
 
         return view('dashboard', [

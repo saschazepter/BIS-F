@@ -565,7 +565,7 @@
     "status.visibility.4.detail": "Widoczne tylko dla zalogowanych użytkowników",
     "settings.delete-webhook.success": "Webhooki zostały usunięte",
     "map-providers.open-railway-map": "Open Railway Map",
-    "scopes.read-statuses": "zobacz wszystkie statusy",
+    "scopes.read-statuses": "wyświetlać wszystkie twoje statusy",
     "settings.title-appdevelopment": "Rozwój aplikacji",
     "user.timezone": "Strefa czasowa",
     "generate-token": "Wygeneruj token",
@@ -668,5 +668,8 @@
     "trip-info.stopover": "Stacja",
     "trip-info.title": ":linename w dniu :date",
     "trip-info.in-this-connection": "W tym połączeniu",
-    "welcome.stats.duration": "lat w podróży"
+    "welcome.stats.duration": "lat w podróży",
+    "profile.youre-blocked-information-text": "Zostałeś zablokowany przez użytkownika @:username, nie możesz zobaczyć jego meldunków.",
+    "settings.colorscheme.auto": "Ustawienia systemowe",
+    "dashboard.empty.teaser": "Możesz obserwować innych użytkowników, żeby zobaczyć tutaj ich meldunki."
 }
