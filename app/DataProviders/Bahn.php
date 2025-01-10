@@ -186,6 +186,7 @@ class Bahn extends Controller implements DataProviderInterface
                 try {
                     $departureStation = Station::whereIn('ibnr', [$departureStopId])->get()->first();
                     if ($departureStation === null) {
+                        // if station does not exist, request it from API
                         $stationsFromApi = $this->getStations($departureStopId, 1);
                         $departureStation = $stationsFromApi->first();
                     }
@@ -345,13 +346,20 @@ class Bahn extends Controller implements DataProviderInterface
             $departureReal    = isset($rawHalt['ezAbfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['ezAbfahrtsZeitpunkt'], $timezone) : null;
             $arrivalPlanned   = isset($rawHalt['ankunftsZeitpunkt']) ? Carbon::parse($rawHalt['ankunftsZeitpunkt'], $timezone) : null;
             $arrivalReal      = isset($rawHalt['ezAnkunftsZeitpunkt']) ? Carbon::parse($rawHalt['ezAnkunftsZeitpunkt'], $timezone) : null;
+            // new API does not differ between departure and arrival platform
+            $platformPlanned  = $rawHalt['gleis'] ?? null;
+            $platformReal     = $rawHalt['ezGleis'] ?? $platformPlanned;
 
             $stopover = new Stopover([
-                                         'train_station_id'  => $station->id,
-                                         'arrival_planned'   => $arrivalPlanned ?? $departurePlanned,
-                                         'arrival_real'      => $arrivalReal ?? $departureReal ?? null,
-                                         'departure_planned' => $departurePlanned ?? $arrivalPlanned,
-                                         'departure_real'    => $departureReal ?? $arrivalReal ?? null,
+                                         'train_station_id'           => $station->id,
+                                         'arrival_planned'            => $arrivalPlanned ?? $departurePlanned,
+                                         'arrival_real'               => $arrivalReal ?? $departureReal ?? null,
+                                         'departure_planned'          => $departurePlanned ?? $arrivalPlanned,
+                                         'departure_real'             => $departureReal ?? $arrivalReal ?? null,
+                                         'arrival_platform_planned'   => $platformPlanned,
+                                         'departure_platform_planned' => $platformPlanned,
+                                         'arrival_platform_real'      => $platformReal,
+                                         'departure_platform_real'    => $platformReal,
                                      ]);
             $stopovers->push($stopover);
         }
