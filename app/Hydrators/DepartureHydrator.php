@@ -44,8 +44,8 @@ class DepartureHydrator
             "when"                => $request->realDeparture?->toIso8601String(),
             "plannedWhen"         => $request->plannedDeparture->toIso8601String(),
             "delay"               => $request->getDelay(), //TODO: make it deprecated
-            "platform"            => null,
-            "plannedPlatform"     => null,
+            "platform"            => $request->realPlatform,
+            "plannedPlatform"     => $request->plannedPlatform,
             "direction"           => $request->trip->direction,
             "provenance"          => null,
             "line"                => [

@@ -4,6 +4,7 @@ namespace App\DataProviders;
 
 use App\Dto\Internal\BahnTrip;
 use App\Dto\Internal\Departure;
+use App\Enum\HafasTravelType;
 use App\Enum\ReiseloesungCategory;
 use App\Enum\TravelType;
 use App\Enum\TripSource;
@@ -20,6 +21,7 @@ use App\Models\Trip;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use JsonException;
@@ -172,25 +174,55 @@ class Bahn extends Controller implements DataProviderInterface
             CacheKey::increment(HCK::DEPARTURES_SUCCESS);
             foreach ($entries as $rawDeparture) {
                 //trip
+                $journeyId         = $rawDeparture['journeyId'];
+                $departureStopId   = $rawDeparture['bahnhofsId'];
                 $tripLineName      = $rawDeparture['verkehrmittel']['mittelText'] ?? '';
-                $tripNumber        = preg_replace('/\s/', '-', strtolower($tripLineName)) ?? '';
-                $tripJourneyNumber = preg_replace('/\D/', '', $rawDeparture['verkehrmittel']['name']);
                 $category          = isset($rawDeparture['verkehrmittel']['produktGattung']) ? ReiseloesungCategory::tryFrom($rawDeparture['verkehrmittel']['produktGattung']) : ReiseloesungCategory::UNKNOWN;
                 $category          = $category ?? ReiseloesungCategory::UNKNOWN;
+                $hafasTravelType   = $category->getHTT()->value;
 
-                $departures->push(new Departure(
-                                      station:          $station,
-                                      plannedDeparture: Carbon::parse($rawDeparture['zeit'], $timezone),
-                                      realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit'], $timezone) : null,
-                                      trip:             new BahnTrip(
-                                                            tripId:        $rawDeparture['journeyId'],
-                                                            direction:     $rawDeparture['terminus'],
-                                                            lineName:      $tripLineName,
-                                                            number:        $tripNumber,
-                                                            category:      $category->getHTT()->value,
-                                                            journeyNumber: $tripJourneyNumber,
-                                                        ),
-                                  ));
+                $platformPlanned   = $rawDeparture['gleis'] ?? '';
+                $platformReal      = $rawDeparture['ezGleis'] ?? $platformPlanned;
+                try {
+                    $departureStation = Station::whereIn('ibnr', [$departureStopId])->get()->first();
+                    if ($departureStation === null) {
+                        $stationsFromApi = $this->getStations($departureStopId, 1);
+                        $departureStation = $stationsFromApi->first();
+                    }
+                } catch (Exception $exception) {
+                    Log::error($exception->getMessage());
+                    $departureStation = $station;
+                }
+
+                // Cache data used for trip creation since another endpoints do not provide them
+                Cache::add($journeyId, [
+                    'category' => $hafasTravelType,
+                    'lineName' => $tripLineName
+                ], now()->addMinutes(30));
+
+                preg_match('/#ZE#(\d+)/', $journeyId, $matches);
+                $journeyNumber = 0;
+                if (count($matches) > 1) {
+                    $journeyNumber = $matches[1];
+                }
+
+                $departure = new Departure(
+                    station:          $departureStation,
+                    plannedDeparture: Carbon::parse($rawDeparture['zeit'], $timezone),
+                    realDeparture:    isset($rawDeparture['ezZeit']) ? Carbon::parse($rawDeparture['ezZeit'], $timezone) : null,
+                    trip:             new BahnTrip(
+                                          tripId:        $journeyId,
+                                          direction:     $rawDeparture['terminus'] ?? '',
+                                          lineName:      $tripLineName,
+                                          number:        $journeyNumber,
+                                          category:      $hafasTravelType,
+                                          journeyNumber: $journeyNumber,
+                                      ),
+                    plannedPlatform:  $platformPlanned,
+                    realPlatform:     $platformReal,
+                );
+
+                $departures->push($departure);
             }
 
             return DepartureHydrator::map($departures);
@@ -259,6 +291,8 @@ class Bahn extends Controller implements DataProviderInterface
             // sorry
             throw new HafasException(__('messages.exception.generalHafas'));
         }
+        // get cached data from departure board
+        $cachedData = Cache::get($tripID);
         $stopoverCacheFromDB = Station::whereIn('ibnr', collect($rawJourney['halte'])->pluck('extId'))->get();
 
         $originStation      = $stopoverCacheFromDB->where('ibnr', $rawJourney['halte'][0]['extId'])->first() ?? self::getStationFromHalt($rawJourney['halte'][0]);
@@ -273,20 +307,26 @@ class Bahn extends Controller implements DataProviderInterface
             }
         }
         if (empty($category)) {
-            $category = ReiseloesungCategory::UNKNOWN;
+            // get cached category since Bahn API does not reveal that on the journey endpoint?!
+            $category = $cachedData['category'] ?? HafasTravelType::REGIONAL->value;
+        } else {
+            $category = $category->getHTT()->value;
         }
 
-        $tripLineName      = $rawJourney['zugName'] ?? '';
-        $tripNumber        = preg_replace('/\s/', '-', strtolower($tripLineName)) ?? '';
-        $tripJourneyNumber = preg_replace('/\D/', '', $tripLineName);
+        $tripLineName = $cachedData['lineName'] ?? '';
+        preg_match('/#ZE#(\d+)/', $tripID, $matches);
+        $tripNumber = 0;
+        if (count($matches) > 1) {
+            $tripNumber = $matches[1];
+        }
 
 
         $journey = Trip::create([
                                     'trip_id'        => $tripID,
-                                    'category'       => $category->getHTT(),
+                                    'category'       => $category,
                                     'number'         => $tripNumber,
                                     'linename'       => $tripLineName,
-                                    'journey_number' => !empty($tripJourneyNumber) ? $tripJourneyNumber : 0,
+                                    'journey_number' => $tripNumber,
                                     'operator_id'    => null, //TODO
                                     'origin_id'      => $originStation->id,
                                     'destination_id' => $destinationStation->id,
