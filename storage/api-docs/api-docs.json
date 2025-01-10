@@ -420,21 +420,6 @@
                 ]
             }
         },
-        "/activeEvents": {
-            "get": {
-                "tags": [
-                    "Events"
-                ],
-                "summary": "DEPRECATED - USE /events - removed after 2024-08",
-                "description": "DEPRECATED - USE /events - removed after 2024-08",
-                "operationId": "getActiveEvents",
-                "responses": {
-                    "200": {
-                        "description": "The events"
-                    }
-                }
-            }
-        },
         "/user/{id}/follow": {
             "post": {
                 "tags": [
@@ -2781,7 +2766,7 @@
                     "401": {
                         "description": "Unauthorized"
                     },
-                    "404": {
+                    "204": {
                         "description": "No active checkin"
                     }
                 },
@@ -4386,7 +4371,7 @@
                     {
                         "name": "username",
                         "in": "query",
-                        "description": "Search for Username"
+                        "description": "Search for parts username"
                     },
                     {
                         "name": "name",

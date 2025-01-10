@@ -29,7 +29,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
-use OpenApi\Annotations as OA;
 
 class StatusController extends Controller
 {
@@ -419,7 +418,7 @@ class StatusController extends Controller
             $this->authorize('update', $status);
 
             //Check for disallowed status visibility changes
-            if(auth()->user()->can('disallow-status-visibility-change') && $validated['visibility'] !== StatusVisibility::PRIVATE->value) {
+            if (auth()->user()->can('disallow-status-visibility-change') && $validated['visibility'] !== StatusVisibility::PRIVATE->value) {
                 return $this->sendError('You are not allowed to change the visibility to anything else than private', 403);
             }
 
@@ -612,26 +611,22 @@ class StatusController extends Controller
      *          )
      *       ),
      *       @OA\Response(response=401, description="Unauthorized"),
-     *       @OA\Response(response=404, description="No active checkin"),
+     *       @OA\Response(response=204, description="No active checkin"),
      *       security={
      *          {"passport": {"read-statuses"}}, {"token": {}}
-     *
      *       }
      *     )
-     *
-     * @return JsonResponse
      */
-    public function getActiveStatus(): JsonResponse {
+    public function getActiveStatus(): StatusResource|JsonResponse {
         $latestStatuses = UserBackend::statusesForUser(user: Auth::user());
-        if ($latestStatuses->count() === 0) {
-            return $this->sendError('User doesn\'t have any checkins');
-        }
-        foreach ($latestStatuses as $status) {
-            if ($status->checkin->originStopover->departure->isPast()
-                && $status->checkin->destinationStopover->arrival->isFuture()) {
-                return $this->sendResponse(new StatusResource($status));
+        if ($latestStatuses->count() > 0) {
+            foreach ($latestStatuses as $status) {
+                if ($status->checkin->originStopover->departure->isPast()
+                    && $status->checkin->destinationStopover->arrival->isFuture()) {
+                    return new StatusResource($status);
+                }
             }
         }
-        return $this->sendError('No active status');
+        return response()->json(null, 204);
     }
 }
