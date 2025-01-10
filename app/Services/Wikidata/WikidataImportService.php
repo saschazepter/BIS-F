@@ -29,6 +29,9 @@ class WikidataImportService
         'Q15310171', // Seehafen
         'Q928830', //U-Bahnhof
         'Q22808403', // unterirdische Haltestelle
+        'Q55485', // dead-end railway station
+        'Q55491', // underground railway station
+        'Q7886778', // union station
     ];
 
     public static function importStation(string $qId): Station {
