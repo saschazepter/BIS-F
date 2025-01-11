@@ -24,10 +24,10 @@ class LocationController
     private ?Status   $status;
 
     public function __construct(
-        Trip     $trip,
-        Stopover $origin = null,
-        Stopover $destination = null,
-        Status   $status = null
+        Trip      $trip,
+        ?Stopover $origin = null,
+        ?Stopover $destination = null,
+        ?Status   $status = null
     ) {
         $this->trip        = $trip;
         $this->origin      = $origin;
