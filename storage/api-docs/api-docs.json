@@ -2167,69 +2167,6 @@
                 ]
             }
         },
-        "/dashboard/global": {
-            "get": {
-                "tags": [
-                    "Dashboard"
-                ],
-                "summary": "Get paginated statuses of global dashboard",
-                "description": "Returns paginated statuses of global dashboard",
-                "operationId": "getGlobalDashboard",
-                "parameters": [
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "description": "Page of pagination",
-                        "required": false,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/StatusResource"
-                                            }
-                                        },
-                                        "links": {
-                                            "$ref": "#/components/schemas/Links"
-                                        },
-                                        "meta": {
-                                            "$ref": "#/components/schemas/PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request"
-                    },
-                    "401": {
-                        "description": "Not logged in"
-                    }
-                },
-                "security": [
-                    {
-                        "passport": [
-                            "read-statuses"
-                        ]
-                    },
-                    {
-                        "token": []
-                    }
-                ]
-            }
-        },
         "/dashboard/future": {
             "get": {
                 "tags": [

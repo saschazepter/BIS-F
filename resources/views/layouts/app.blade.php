@@ -196,11 +196,6 @@
                         <div class="col-6 col-md-2 mb-3">
                             <ul class="nav flex-column">
                                 <li class="nav-item mb-2">
-                                    <a href="{{ route('globaldashboard') }}" class="nav-link p-0 text-body-secondary">
-                                        {{ __('menu.globaldashboard') }}
-                                    </a>
-                                </li>
-                                <li class="nav-item mb-2">
                                     <a href="{{ route('events') }}" class="nav-link p-0 text-body-secondary">
                                         {{ __('events') }}
                                     </a>

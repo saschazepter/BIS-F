@@ -198,9 +198,6 @@ Route::middleware(['auth', 'privacy'])->group(function() {
     Route::get('/dashboard', [FrontendStatusController::class, 'getDashboard'])
          ->name('dashboard');
 
-    Route::get('/dashboard/global', [FrontendStatusController::class, 'getGlobalDashboard'])
-         ->name('globaldashboard');
-
     Route::post('/status/update', [StatusController::class, 'updateStatus'])
          ->name('status.update'); //TODO: Replace with API Endpoint
 

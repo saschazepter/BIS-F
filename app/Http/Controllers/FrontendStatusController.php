@@ -30,15 +30,6 @@ class FrontendStatusController extends Controller
         ]);
     }
 
-    public function getGlobalDashboard(): Renderable {
-        return view('dashboard', [
-            'statuses'         => DashboardController::getGlobalDashboard(Auth::user()),
-            'latest'           => StationController::getLatestArrivals(Auth::user()),
-            'future'           => StatusBackend::getFutureCheckins(),
-            'showGlobalButton' => false
-        ]);
-    }
-
     public function getActiveStatuses(): View {
         return view('activejourneys', [
             'currentUser' => Auth::user(),

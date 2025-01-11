@@ -72,39 +72,7 @@ class StatusController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *      path="/dashboard/global",
-     *      operationId="getGlobalDashboard",
-     *      tags={"Dashboard"},
-     *      summary="Get paginated statuses of global dashboard",
-     *      description="Returns paginated statuses of global dashboard",
-     *      @OA\Parameter (
-     *          name="page",
-     *          description="Page of pagination",
-     *          required=false,
-     *          in="query",
-     *          @OA\Schema(type="integer")
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="successful operation",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="data", type="array",
-     *                  @OA\Items(
-     *                      ref="#/components/schemas/StatusResource"
-     *                  )
-     *              ),
-     *              @OA\Property(property="links", ref="#/components/schemas/Links"),
-     *              @OA\Property(property="meta", ref="#/components/schemas/PaginationMeta"),
-     *          )
-     *       ),
-     *       @OA\Response(response=400, description="Bad request"),
-     *       @OA\Response(response=401, description="Not logged in"),
-     *       security={
-     *           {"passport": {"read-statuses"}}, {"token": {}}
-     *       }
-     *     )
-     *
+     * @deprecated
      */
     public static function getGlobalDashboard(): AnonymousResourceCollection {
         return StatusResource::collection(DashboardController::getGlobalDashboard(Auth::user()));

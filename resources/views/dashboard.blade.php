@@ -161,10 +161,10 @@
                         </h4>
                         <p>{{ __('dashboard.empty.teaser') }}</p>
                         <p>{{ __('dashboard.empty.discover1') }}
-                            <a href="{{route('statuses.active')}}">{{ __('menu.active') }}</a>
-                            {{ __('dashboard.empty.discover2') }}
-                            <a href="{{route('globaldashboard') }}">{{ __('menu.globaldashboard') }}</a>
-                            {{ __('dashboard.empty.discover3') }}
+                            <a href="{{route('statuses.active')}}">
+                                {{ __('menu.active') }}
+                            </a>
+                            {{ __('dashboard.empty.discover3') }}.
                         </p>
                     </div>
                 @endif
