@@ -63,6 +63,10 @@ export default {
       };
       this.stopovers.push(dummyStopover);
     },
+    removeStopover(index) {
+      this.stopovers.splice(index, 1);
+      this.validateTimes(); // Optional: Zeiten erneut validieren
+    },
     setOrigin(item) {
       this.origin = item;
       this.form.originId = item.id;
@@ -214,31 +218,47 @@ export default {
     <div class="card mb-3">
       <form @submit.prevent="sendForm" class="card-body">
         <div class="row g-3 mb-3">
-          <StationRow
-              :placeholder="trans('trip_creation.form.origin')"
-              :arrival="false"
-              v-on:update:station="setOrigin"
-              v-on:update:timeFieldB="setDeparture"
-          ></StationRow>
+          <div class="d-flex align-items-center w-100">
+            <StationRow
+                :placeholder="trans('trip_creation.form.origin')"
+                :arrival="false"
+                v-on:update:station="setOrigin"
+                v-on:update:timeFieldB="setDeparture"
+            ></StationRow>
+          </div>
         </div>
-        <a href="#" @click="addStopover">{{ trans("trip_creation.form.add_stopover") }} <i class="fa fa-plus"
-                                                                                           aria-hidden="true"></i></a>
-        <div class="row g-3 mt-1" v-for="(stopover, key) in stopovers" v-bind:key="key">
-          <StationRow
-              :placeholder="trans('trip_creation.form.stopover')"
-              v-on:update:station="setStopoverStation($event, key)"
-              v-on:update:timeFieldB="setStopoverDeparture($event, key)"
-              v-on:update:timeFieldA="setStopoverArrival($event, key)"
-          ></StationRow>
-          <hr>
+        <a href="#" @click="addStopover">{{ trans("trip_creation.form.add_stopover") }}
+          <i class="fa fa-plus" aria-hidden="true"></i>
+        </a>
+        <div class="row g-3 mt-1" v-for="(stopover, key) in stopovers" :key="key">
+          <div class="d-flex align-items-center w-100">
+            <div class="flex-grow-1 d-flex">
+              <StationRow
+                  :placeholder="trans('trip_creation.form.stopover')"
+                  v-on:update:station="setStopoverStation($event, key)"
+                  v-on:update:timeFieldB="setStopoverDeparture($event, key)"
+                  v-on:update:timeFieldA="setStopoverArrival($event, key)"
+              ></StationRow>
+
+              <button type="button" class="btn btn-danger btn-sm ms-3"
+                      @click="removeStopover(key)"
+                      style="height: calc(3.5rem);"
+              >
+                <i class="fa fa-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <hr class="my-2">
         </div>
         <div class="row g-3 mt-1">
-          <StationRow
-              :placeholder="trans('trip_creation.form.destination')"
-              :departure="false"
-              v-on:update:station="setDestination"
-              v-on:update:timeFieldB="setArrival"
-          ></StationRow>
+          <div class="d-flex align-items-center w-100">
+            <StationRow
+                :placeholder="trans('trip_creation.form.destination')"
+                :departure="false"
+                v-on:update:station="setDestination"
+                v-on:update:timeFieldB="setArrival"
+            ></StationRow>
+          </div>
         </div>
         <div class="row g-3 mt-1">
           <div class="col-12 col-md-3">

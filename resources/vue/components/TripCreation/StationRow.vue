@@ -91,33 +91,41 @@ export default {
 </script>
 
 <template>
-  <div :class="departure && arrival ? 'col-12 col-md-4' : 'col'">
-    <FullScreenModal ref="modal">
-      <template #header>
-        <input v-model="stationInput"
-               :placeholder="placeholder"
-               class="form-control mobile-input-fs-16"
-               name="station"
-               type="text"
-        />
-      </template>
-      <template #body>
-        <ul class="list-group list-group-light list-group-small">
-          <li v-for="item in autocompleteList" class="list-group-item" @click="setStation(item)">
-            <a class="text-trwl" href="#">
-              {{ item.name }} <span v-if="item.rilIdentifier">({{ item.rilIdentifier }})</span>
-            </a>
-          </li>
-        </ul>
-      </template>
-    </FullScreenModal>
+  <FullScreenModal ref="modal">
+    <template #header>
+      <input v-model="stationInput"
+             :placeholder="placeholder"
+             class="form-control mobile-input-fs-16"
+             name="station"
+             type="text"
+      />
+    </template>
+    <template #body>
+      <ul class="list-group list-group-light list-group-small">
+        <li v-for="item in autocompleteList" class="list-group-item" @click="setStation(item)">
+          <a class="text-trwl" href="#">
+            {{ item.name }} <span v-if="item.rilIdentifier">({{ item.rilIdentifier }})</span>
+          </a>
+        </li>
+      </ul>
+    </template>
+  </FullScreenModal>
+
+  <!-- Station Input -->
+  <div class="flex-grow-1 me-2">
     <div class="form-floating">
-      <input v-model="stationInput" class="form-control mobile-input-fs-16"
-             type="text" @focusin="showModal">
+      <input
+          v-model="stationInput"
+          class="form-control mobile-input-fs-16"
+          type="text"
+          @focusin="showModal"
+      >
       <label :for="timeFieldBId" class="form-label">{{ placeholder }}</label>
     </div>
   </div>
-  <div v-if="departure && arrival" :class="departure && arrival ? 'col col-md-4' : 'col-4'">
+
+  <!-- Time Fields -->
+  <div class="me-2" v-if="departure && arrival" :class="departure && arrival ? 'col-md-4' : 'col-4'">
     <div class="form-floating">
       <input
           :id="timeFieldAId"
@@ -130,7 +138,8 @@ export default {
       <label :for="timeFieldAId" class="form-label">{{ timeFieldALabel }}</label>
     </div>
   </div>
-  <div :class="departure && arrival ? 'col col-md-4' : 'col-4'">
+
+  <div :class="departure && arrival ? 'col-md-4' : 'col-4'">
     <div class="form-floating">
       <input
           :id="timeFieldBId"
