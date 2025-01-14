@@ -826,5 +826,6 @@
     "trip-info.user": "User",
     "trip-info.origin": "Origin",
     "trip-info.destination": "Destination",
-    "requested-timestamp": "Requested timestamp"
+    "requested-timestamp": "Requested timestamp",
+    "successfully-deleted": "Successfully deleted"
 }

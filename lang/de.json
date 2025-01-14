@@ -826,5 +826,6 @@
     "trip-info.user": "User",
     "trip-info.origin": "Abfahrtsort",
     "trip-info.destination": "Zielort",
-    "requested-timestamp": "Abfragezeitpunkt"
+    "requested-timestamp": "Abfragezeitpunkt",
+    "successfully-deleted": "Erfolgreich gelöscht"
 }
