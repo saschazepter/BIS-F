@@ -3,10 +3,11 @@ import StationRow from "./StationRow.vue";
 import {DateTime} from "luxon";
 import {trans} from "laravel-vue-i18n";
 import StationInput from "./StationInput.vue";
+import TripCreationMap from "./TripCreationMap.vue";
 
 export default {
   name: "TripCreationForm",
-  components: {StationInput, StationRow},
+  components: {TripCreationMap, StationInput, StationRow},
   mounted() {
     this.initForm();
     this.loadOperators();
@@ -68,10 +69,12 @@ export default {
       this.stopovers.push(dummyStopover);
     },
     removeStopover(index) {
+      this.$refs.map.removeMarker(index);
       this.stopovers.splice(index, 1);
       this.validateTimes(); // Optional: Zeiten erneut validieren
     },
     setOrigin(item) {
+      this.$refs.map.addMarker(item, "origin");
       this.origin = item;
       this.form.originId = item.id;
     },
@@ -80,6 +83,7 @@ export default {
       this.validateTimes();
     },
     setDestination(item) {
+      this.$refs.map.addMarker(item, "destination");
       this.destination = item;
       this.form.destinationId = item.id;
     },
@@ -155,6 +159,7 @@ export default {
       });
     },
     setStopoverStation(item, key) {
+      this.$refs.map.addMarker(item, key);
       this.stopovers[key].station = item;
     },
     setStopoverDeparture(time, key) {
@@ -361,8 +366,8 @@ export default {
       </form>
 
     </div>
-    <div class="col d-none d-md-block bg-warning">
-      col 2
+    <div class="col d-none d-md-block bg-warning px-0">
+      <TripCreationMap ref="map"></TripCreationMap>
     </div>
   </div>
 </template>

@@ -198,11 +198,11 @@ export default {
            :aria-label="placeholder" aria-describedby="basic-addon1"
            v-model="stationInput" @focusin="showModal"
     >
-    <span class="input-group-text font-monospace">
-      {{ this.timeFieldB }}
-    </span>
     <span class="input-group-text font-monospace" v-if="departure && arrival">
       {{ this.timeFieldA }}
+    </span>
+    <span class="input-group-text font-monospace">
+      {{ this.timeFieldB }}
     </span>
     <button class="btn btn-sm btn-outline-danger input-group-button py-1" type="button" @click="$emit('delete')">
       <i class="fas fa-trash-alt"></i>
