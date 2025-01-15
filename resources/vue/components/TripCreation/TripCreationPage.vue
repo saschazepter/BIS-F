@@ -2,10 +2,11 @@
 import StationRow from "./StationRow.vue";
 import {DateTime} from "luxon";
 import {trans} from "laravel-vue-i18n";
+import StationInput from "./StationInput.vue";
 
 export default {
   name: "TripCreationForm",
-  components: {StationRow},
+  components: {StationInput, StationRow},
   mounted() {
     this.initForm();
     this.loadOperators();
@@ -213,7 +214,7 @@ export default {
 </script>
 
 <template>
-  <div class="row full-height mt-n4">
+  <div class="row full-height mt-n4 mx-0">
     <div class="col col-md-5 col-lg-4 col-xl-3 p-0 h-100">
       <div class="accordion accordion-flush border-bottom" id="TripCreationMetaDataAccordion">
         <div class="accordion-item">
@@ -314,6 +315,51 @@ export default {
           </div>
         </div>
       </div>
+
+      <form @submit.prevent="sendForm" class="px-4 mt-4">
+        <StationInput
+            :placeholder="trans('trip_creation.form.origin')"
+            :arrival="false"
+            v-on:update:station="setOrigin"
+            v-on:update:timeFieldB="setDeparture"
+        ></StationInput>
+
+        <div class="row g-3 mt-1" v-for="(stopover, key) in stopovers" :key="key">
+          <div class="d-flex align-items-center w-100">
+            <div class="flex-grow-1 d-flex">
+              <StationInput
+                  :placeholder="trans('trip_creation.form.stopover')"
+                  v-on:update:station="setStopoverStation($event, key)"
+                  v-on:update:timeFieldB="setStopoverDeparture($event, key)"
+                  v-on:update:timeFieldA="setStopoverArrival($event, key)"
+                  v-on:delete="removeStopover(key)"
+              ></StationInput>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-2 px-3">
+          <a href="#" @click="addStopover">{{ trans("trip_creation.form.add_stopover") }}
+            <i class="fa fa-plus" aria-hidden="true"></i>
+          </a>
+        </div>
+
+        <StationInput
+            :placeholder="trans('trip_creation.form.destination')"
+            :arrival="true"
+            :departure="false"
+            v-on:update:station="setDestination"
+            v-on:update:timeFieldB="setArrival"
+        ></StationInput>
+
+        <div class="mt-4 border-top pt-4 d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary">
+            {{ trans("trip_creation.form.save") }}
+          </button>
+        </div>
+
+      </form>
+
     </div>
     <div class="col d-none d-md-block bg-warning">
       col 2
