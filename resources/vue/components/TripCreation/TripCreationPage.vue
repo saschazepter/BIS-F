@@ -11,6 +11,7 @@ export default {
   mounted() {
     this.initForm();
     this.loadOperators();
+    this.getOriginFromQuery();
   },
   data() {
     return {
@@ -179,6 +180,32 @@ export default {
       // todo: guess mode of transport based on line input
       // e.g.: if line starts with ICE or TGV, set category to nationalExpress
     },
+    getOriginFromQuery() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stationId = urlParams.get("from");
+
+      if (stationId) {
+        fetch(`/api/v1/stations/${stationId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(response.statusText);
+              }
+              return response.json();
+            })
+            .then((result) => {
+              console.log(result.data);
+              this.$refs.originInput.setStation(result.data);
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+      }
+    },
     onLineInput() {
       this.checkDisallowed()
       this.guessModeOfTransport();
@@ -323,6 +350,7 @@ export default {
 
       <form @submit.prevent="sendForm" class="px-4 mt-4">
         <StationInput
+            ref="originInput"
             :placeholder="trans('trip_creation.form.origin')"
             :arrival="false"
             v-on:update:station="setOrigin"

@@ -72,12 +72,22 @@ export default {
         this.$refs.stationInputField.focus();
       }, 100);
     },
+    showModalFocusTime(fieldB = true) {
+      this.$refs.modal.show();
+      // delay focus to make sure the modal is shown
+      setTimeout(() => {
+        if (fieldB) {
+          this.$refs.timeFieldB.focus();
+        } else {
+          this.$refs.timeFieldA.focus();
+        }
+      }, 100);
+    },
     setStation(item) {
       this.stationInput = item.name;
       this.$emit('update:station', item);
       this.autocompleteList = [];
       this.pauseAutoComplete = true;
-      //this.$refs.modal.hide();
     },
     timeFieldAChanged(event) {
       this.$emit('update:timeFieldA', event.target.value)
@@ -169,6 +179,7 @@ export default {
               :placeholder="timeFieldALabel"
               class="form-control mobile-input-fs-16"
               type="datetime-local"
+              ref="timeFieldA"
               @input="timeFieldAChanged"
           >
         </div>
@@ -185,6 +196,7 @@ export default {
               :placeholder="timeFieldBLabel"
               class="form-control mobile-input-fs-16"
               type="datetime-local"
+              ref="timeFieldB"
               @input="timeFieldBChanged"
           >
         </div>
@@ -198,10 +210,10 @@ export default {
            :aria-label="placeholder" aria-describedby="basic-addon1"
            v-model="stationInput" @focusin="showModal"
     >
-    <span class="input-group-text font-monospace" v-if="departure && arrival">
+    <span class="input-group-text font-monospace" v-if="departure && arrival" @click="showModalFocusTime(false)">
       {{ this.timeFieldA }}
     </span>
-    <span class="input-group-text font-monospace">
+    <span class="input-group-text font-monospace" @click="showModalFocusTime">
       {{ this.timeFieldB }}
     </span>
     <button class="btn btn-sm btn-outline-danger input-group-button py-1" type="button" @click="$emit('delete')">
