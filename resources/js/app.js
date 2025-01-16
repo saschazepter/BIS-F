@@ -16,7 +16,6 @@ import CheckinSuccessHelper from "../vue/components/CheckinSuccessHelper.vue";
 import {i18nVue} from "laravel-vue-i18n";
 import TagHelper from "../vue/components/TagHelper.vue";
 import TripCreationForm from "../vue/components/TripCreation/TripCreationForm.vue";
-import TripCreationPage from "../vue/components/TripCreation/TripCreationPage.vue";
 import {createPinia} from 'pinia'
 import piniaPluginPersistedsState from 'pinia-plugin-persistedstate'
 import FriendCheckinSettings from "../vue/components/Settings/FriendCheckinSettings.vue";
@@ -107,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (document.getElementById("trip-creation-form")) {
         const app6 = createApp({});
-        app6.component("TripCreationForm", TripCreationPage);
+        app6.component("TripCreationForm", TripCreationForm);
         app6.use(i18nVue, i18nOptions);
         app6.mount("#trip-creation-form");
     }
