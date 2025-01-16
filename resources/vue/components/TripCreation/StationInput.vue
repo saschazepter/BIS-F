@@ -36,6 +36,9 @@ export default {
     };
   },
   computed: {
+    clearInput() {
+      this.stationInput = "";
+    },
     timeFieldALabel() {
       if (this.arrival && this.departure) {
         return trans("trip_creation.form.arrival");
@@ -145,13 +148,18 @@ export default {
       <h5>{{ placeholder }}</h5>
     </template>
     <template #body>
-      <input v-model="stationInput"
-             :placeholder="placeholder"
-             class="form-control mobile-input-fs-16"
-             name="station"
-             type="text"
-             ref="stationInputField"
-      />
+      <div class="input-group">
+        <input v-model="stationInput"
+               :placeholder="placeholder"
+               class="form-control mobile-input-fs-16"
+               name="station"
+               type="text"
+               ref="stationInputField"
+        />
+        <button class="btn btn-light" @click="clearInput" type="button">
+          <i class="fa-solid fa-delete-left"></i>
+        </button>
+      </div>
       <ul class="list-group list-group-light list-group-small mb-2">
         <AutocompleteListEntry
             v-for="item in recent"

@@ -26,6 +26,7 @@ export default {
         category: {},
         stopovers: [],
       },
+      tripDataActive: true,
       originTimezone: "Europe/Berlin",
       destinationTimezone: "Europe/Berlin",
       stopovers: [],
@@ -69,13 +70,20 @@ export default {
       };
       this.stopovers.push(dummyStopover);
     },
+    showData() {
+      this.tripDataActive = true;
+    },
+    showMap() {
+      this.tripDataActive = false;
+      this.$refs.map.invalidateSize();
+    },
     removeStopover(index) {
       this.$refs.map.removeMarker(index);
       this.stopovers.splice(index, 1);
       this.validateTimes(); // Optional: Zeiten erneut validieren
     },
     setOrigin(item) {
-      this.$refs.map.addMarker(item, "origin");
+      this.$refs.map.addMarker(item, "origin", this.stopovers.length);
       this.origin = item;
       this.form.originId = item.id;
     },
@@ -84,7 +92,7 @@ export default {
       this.validateTimes();
     },
     setDestination(item) {
-      this.$refs.map.addMarker(item, "destination");
+      this.$refs.map.addMarker(item, "destination", this.stopovers.length);
       this.destination = item;
       this.form.destinationId = item.id;
     },
@@ -160,7 +168,7 @@ export default {
       });
     },
     setStopoverStation(item, key) {
-      this.$refs.map.addMarker(item, key);
+      this.$refs.map.addMarker(item, key, this.stopovers.length);
       this.stopovers[key].station = item;
     },
     setStopoverDeparture(time, key) {
@@ -246,8 +254,22 @@ export default {
 </script>
 
 <template>
+  <div class="row mt-n4 mb-4 border-bottom d-block d-md-none">
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" :class="{'active': tripDataActive}" @click="showData">
+          {{ trans('trip_creation.form.trip_data') }}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation" @click="showMap">
+        <button class="nav-link" :class="{'active': !tripDataActive}">
+          {{ trans('trip_creation.form.map') }}
+        </button>
+      </li>
+    </ul>
+  </div>
   <div class="row full-height mt-n4 mx-0">
-    <div class="col col-md-5 col-lg-4 col-xl-3 p-0 h-100">
+    <div class="col d-md-block col-md-5 col-lg-4 col-xl-3 p-0 h-100" :class="{'d-none': !tripDataActive}">
       <div class="accordion accordion-flush border-bottom" id="TripCreationMetaDataAccordion">
         <div class="accordion-item">
           <h2 class="accordion-header" id="accordionTripInfo">
@@ -393,8 +415,32 @@ export default {
 
       </form>
 
+      <div class="alert alert-warning m-2">
+        <h2 class="fs-5">
+          <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+          {{ trans("trip_creation.limitations") }}
+        </h2>
+
+        <ul>
+          <li>{{ trans("trip_creation.limitations.1") }}</li>
+          <li>
+            {{ trans("trip_creation.limitations.2") }}
+            <small>{{ trans("trip_creation.limitations.2.small") }}</small>
+          </li>
+          <li>{{ trans("trip_creation.limitations.3") }}</li>
+          <li>{{ trans("trip_creation.limitations.5") }}</li>
+        </ul>
+
+        <p class="fw-bold text-danger">
+          {{ trans("trip_creation.limitations.6") }}
+          <a :href="trans('trip_creation.limitations.6.link')" target="_blank">
+            {{ trans('trip_creation.limitations.6.rules') }}
+          </a>
+        </p>
+      </div>
+
     </div>
-    <div class="col d-none d-md-block bg-warning px-0">
+    <div class="col d-md-block bg-warning px-0" :class="{'d-none': tripDataActive}">
       <TripCreationMap ref="map"></TripCreationMap>
     </div>
   </div>

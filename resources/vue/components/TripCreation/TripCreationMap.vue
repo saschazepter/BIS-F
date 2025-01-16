@@ -38,6 +38,11 @@ export default defineComponent({
   },
   methods: {
     trans,
+    invalidateSize() {
+      setTimeout(() => {
+        this.map.invalidateSize();
+      }, 100);
+    },
     renderMap() {
       this.map = L.map(this.$refs.map, {
         center: [50.3, 10.47],
@@ -53,18 +58,30 @@ export default defineComponent({
       });
       this.points = [];
     },
-    addMarker(data, index) {
-      console.log(index);
+    addMarker(data, index, length) {
       let marker = L.marker(
           [data.latitude, data.longitude],
           {icon: trainIcon}
       ).addTo(this.map);
 
+      marker.bindPopup(`<strong>${data.name}</strong> <i>${data.rilIdentifier || ''}</i>`);
+
       if (index === "origin") {
+        if (this.origin) {
+          this.origin.marker.remove();
+        }
         this.origin = this.createPointObject(data, marker);
       } else if (index === "destination") {
+        if (this.destination) {
+          this.destination.marker.remove();
+        }
         this.destination = this.createPointObject(data, marker);
       } else {
+
+        if (length === this.points.length) {
+          this.removeMarker(index);
+        }
+
         if (index === 0 || index === this.points.length) {
           this.points.push(this.createPointObject(data, marker));
         } else {
@@ -96,7 +113,6 @@ export default defineComponent({
     },
     initializeMap() {
       this.clearAllElements();
-
     },
     createPointObject(point, marker = null) {
       return {

@@ -747,6 +747,7 @@
   "create-journey": "Create journey",
   "trip_creation.no-valid-times": "The times of the stations are not in the correct chronological order.",
   "trip_creation.form.trip_data": "Journey information",
+  "trip_creation.form.map": "Journey information",
   "trip_creation.title": "Create trip manually",
   "trip_creation.form.origin": "Departure station",
   "trip_creation.form.destination": "Destination station",
