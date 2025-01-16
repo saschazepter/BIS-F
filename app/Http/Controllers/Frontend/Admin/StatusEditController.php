@@ -106,8 +106,9 @@ class StatusEditController extends Controller
         StatusUpdateEvent::dispatch($status->refresh());
 
         $payload = [
-            'visibility' => $validated['visibility'],
-            'event_id'   => $validated['event_id'],
+            'visibility'       => $validated['visibility'],
+            'event_id'         => $validated['event_id'],
+            'moderation_notes' => null,
         ];
 
         if ($status->body !== $validated['body']) {

@@ -45,13 +45,13 @@ class Status extends Model
 
     use HasFactory, LogsActivity;
 
-    protected $fillable = [
+    protected              $fillable     = [
         'user_id', 'body', 'business', 'visibility', 'event_id', 'mastodon_post_id', 'client_id',
         'moderation_notes', 'lock_visibility', 'hide_body',
     ];
-    protected $hidden   = ['user_id', 'business'];
-    protected $appends  = ['favorited', 'statusInvisibleToMe', 'description'];
-    protected $casts    = [
+    protected              $hidden       = ['user_id', 'business'];
+    protected              $appends      = ['favorited', 'statusInvisibleToMe', 'description'];
+    protected              $casts        = [
         'id'               => 'integer',
         'user_id'          => 'integer',
         'business'         => Business::class,
@@ -63,6 +63,7 @@ class Status extends Model
         'lock_visibility'  => 'boolean',
         'hide_body'        => 'boolean'
     ];
+    protected static array $recordEvents = ['updated'];
 
     public function user(): BelongsTo {
         return $this->belongsTo(User::class);
@@ -130,6 +131,9 @@ class Status extends Model
     }
 
     public function getActivitylogOptions(): LogOptions {
-        return LogOptions::defaults()->logOnly(['moderation_notes', 'lock_visibility', 'hide_body']);
+        return LogOptions::defaults()
+                         ->logOnly(['moderation_notes', 'lock_visibility', 'hide_body'])
+                         ->logOnlyDirty()
+                         ->dontSubmitEmptyLogs();
     }
 }
