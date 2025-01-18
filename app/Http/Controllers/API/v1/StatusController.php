@@ -289,14 +289,12 @@ class StatusController extends Controller
      *      }
      * )
      */
-    public function destroy(string|int $statusId): JsonResponse {
+    public function destroy(string|int $statusIdOrUuid): JsonResponse {
         try {
-            //TODO: check scope for write-statuses
-
-            if (is_numeric($statusId)) { //TODO: remove this after uuid migration done
-                $status = Status::findOrFail($statusId);
+            if (is_numeric($statusIdOrUuid)) { //TODO: remove this after uuid migration done
+                $status = Status::findOrFail($statusIdOrUuid);
             } else {
-                $status = Status::where('uuid', $statusId)->firstOrFail();
+                $status = Status::where('uuid', $statusIdOrUuid)->firstOrFail();
             }
             $this->authorize('delete', $status);
             $status->delete();

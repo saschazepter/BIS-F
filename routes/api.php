@@ -62,7 +62,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['return-json']], static functio
             Route::get('dashboard/future', [StatusController::class, 'getFutureCheckins']);
         });
         Route::group(['middleware' => ['scope:write-statuses']], static function() {
-            Route::delete('status/{id}', [StatusController::class, 'destroy'])->whereNumber('id');
+            Route::delete('status/{id}', [StatusController::class, 'destroy']);
             Route::put('status/{id}', [StatusController::class, 'update']);
             Route::post('status/{statusId}/tags', [StatusTagController::class, 'store']);
             Route::put('status/{statusId}/tags/{tagKey}', [StatusTagController::class, 'update']);
