@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 /**
  * //properties
  * @property int                   id
+ * @property string                uuid
  * @property int                   user_id
  * @property string                body
  * @property Business              business
@@ -43,9 +45,13 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class Status extends Model
 {
 
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, HasUuids;
+
+    protected $primaryKey = 'uuid'; // temporary until the migration to uuid is done. 'id' is auto-incrementing in the database
+    protected $keyType    = 'string';
 
     protected              $fillable     = [
+        'uuid',
         'user_id', 'body', 'business', 'visibility', 'event_id', 'mastodon_post_id', 'client_id',
         'moderation_notes', 'lock_visibility', 'hide_body',
     ];
@@ -53,6 +59,7 @@ class Status extends Model
     protected              $appends      = ['favorited', 'statusInvisibleToMe', 'description'];
     protected              $casts        = [
         'id'               => 'integer',
+        'uuid'             => 'string',
         'user_id'          => 'integer',
         'business'         => Business::class,
         'visibility'       => StatusVisibility::class,
@@ -66,15 +73,15 @@ class Status extends Model
     protected static array $recordEvents = ['updated'];
 
     public function user(): BelongsTo {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function likes(): HasMany {
-        return $this->hasMany(Like::class);
+        return $this->hasMany(Like::class, 'status_id', 'id');
     }
 
     public function checkin(): HasOne {
-        return $this->hasOne(Checkin::class);
+        return $this->hasOne(Checkin::class, 'status_id', 'id');
     }
 
     public function client(): BelongsTo {

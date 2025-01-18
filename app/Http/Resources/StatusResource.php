@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Gate;
 /**
  * @OA\Schema(
  *      title="Status",
- *      @OA\Property(property="id", type="integer", example=12345),
+ *      @OA\Property(property="id", type="string", example="123e4567-e89b-12d3-a456-426614174000"),
  *      @OA\Property(property="body", description="User defined status text", example="Hello world!"),
  *      @OA\Property(property="bodyMentions", description="Mentions in the status body", type="array", @OA\Items(ref="#/components/schemas/MentionDto")),
  *      @OA\Property(property="business", ref="#/components/schemas/Business"),
@@ -33,18 +33,19 @@ class StatusResource extends JsonResource
     public function toArray($request): array {
         /** @var Status $this */
         return [
-            'id'             => (int) $this->id,
-            'body'           => (string) $this->body,
+            'id'             => $this->id,
+            'uuid'           => $this->uuid,
+            'body'           => $this->body,
             'bodyMentions'   => $this->mentions->map(
                 fn($mention) => new MentionDto($mention->mentioned, $mention->position, $mention->length)
             ),
-            'user'           => (int) $this->user->id, // TODO: deprectated: remove after 2024-08
-            'username'       => (string) $this->user->username, // TODO: deprectated: remove after 2024-08
+            'user'           => $this->user->id, // TODO: deprectated: remove after 2024-08
+            'username'       => $this->user->username, // TODO: deprectated: remove after 2024-08
             'profilePicture' => ProfilePictureController::getUrl($this->user), // TODO: deprectated: remove after 2024-08
-            'preventIndex'   => (bool) $this->user->prevent_index, // TODO: deprectated: remove after 2024-08
-            'business'       => (int) $this->business->value,
-            'visibility'     => (int) $this->visibility->value,
-            'likes'          => (int) $this->likes->count(),
+            'preventIndex'   => $this->user->prevent_index, // TODO: deprectated: remove after 2024-08
+            'business'       => $this->business->value,
+            'visibility'     => $this->visibility->value,
+            'likes'          => $this->likes->count(),
             'liked'          => (bool) $this->favorited,
             'isLikable'      => Gate::allows('like', $this->resource),
             'client'         => new ClientResource($this->client),

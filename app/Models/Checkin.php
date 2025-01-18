@@ -81,7 +81,7 @@ class Checkin extends Model
     ];
 
     public function status(): BelongsTo {
-        return $this->belongsTo(Status::class);
+        return $this->belongsTo(Status::class, 'status_id', 'id');
     }
 
     public function user(): BelongsTo {
@@ -166,7 +166,7 @@ class Checkin extends Model
     public function getAlsoOnThisConnectionAttribute(): Collection {
         return self::with(['status'])
                    ->where([
-                               ['status_id', '<>', $this->status->id],
+                               ['status_id', '<>', $this->status_id],
                                ['trip_id', '=', $this->trip->trip_id],
                                ['arrival', '>', $this->departure],
                                ['departure', '<', $this->arrival]

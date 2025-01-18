@@ -276,39 +276,31 @@ class StatusController extends Controller
      *      @OA\Parameter (
      *          name="id",
      *          in="path",
-     *          description="Status-ID",
-     *          example=1337,
-     *          @OA\Schema(type="integer")
+     *          description="Status-ID or UUID",
+     *          example="123e4567-e89b-12d3-a456-426614174000",
+     *          @OA\Schema(type="string")
      *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="successful operation",
-     *          @OA\JsonContent(
-     *                      ref="#/components/schemas/SuccessResponse"
-     *          )
-     *       ),
-     *       @OA\Response(response=400, description="Bad request"),
-     *       @OA\Response(response=404, description="No status found for this id"),
-     *       @OA\Response(response=403, description="User not authorized to manipulate this status"),
-     *       security={
-     *           {"passport": {"write-statuses"}}, {"token": {}}
-     *
-     *       }
-     *     )
-     *
-     * @param int $statusId
-     *
-     * @return JsonResponse
+     *      @OA\Response(response=204, description="Status deleted"),
+     *      @OA\Response(response=400, description="Bad request"),
+     *      @OA\Response(response=404, description="No status found for this id"),
+     *      @OA\Response(response=403, description="User not authorized to manipulate this status"),
+     *      security={
+     *          {"passport": {"write-statuses"}}, {"token": {}}
+     *      }
+     * )
      */
-    public function destroy(int $statusId): JsonResponse {
+    public function destroy(string|int $statusId): JsonResponse {
         try {
-            StatusBackend::DeleteStatus(Auth::user(), $statusId);
-            // ToDo: Remove message once the frontend doesn't use the message for anything
-            return $this->sendResponse(
-                ['message' => __('controller.status.delete-ok')],
-                200,
-                ['status' => 'success']
-            );
+            //TODO: check scope for write-statuses
+
+            if (is_numeric($statusId)) { //TODO: remove this after uuid migration done
+                $status = Status::findOrFail($statusId);
+            } else {
+                $status = Status::where('uuid', $statusId)->firstOrFail();
+            }
+            $this->authorize('delete', $status);
+            $status->delete();
+            return response()->json(null, 204);
         } catch (AuthorizationException) {
             return $this->sendError('You are not allowed to delete this status.', 403);
         } catch (ModelNotFoundException) {
@@ -360,6 +352,8 @@ class StatusController extends Controller
      * @throws ValidationException
      */
     public function update(Request $request, int $statusId): JsonResponse {
+        //TODO: check scope for write-statuses
+
         $validator = Validator::make($request->all(), [
             //Just changing of metadata
             'body'                      => ['nullable', 'max:280', 'nullable'],
@@ -413,7 +407,7 @@ class StatusController extends Controller
                 'visibility' => StatusVisibility::from($validated['visibility']),
             ];
 
-            if($status->lock_visibility) {
+            if ($status->lock_visibility) {
                 // If moderation has locked the visibility, prevent the user from changing it
                 unset($updatePayload['visibility']);
             }
