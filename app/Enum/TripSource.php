@@ -16,4 +16,11 @@ enum TripSource: string
      * Trips created by the user - with manual data.
      */
     case USER = 'user';
+
+    public function refreshable(): bool {
+        return match ($this) {
+            self::HAFAS, self::BAHN_WEB_API => true,
+            default                         => false,
+        };
+    }
 }

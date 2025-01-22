@@ -247,7 +247,7 @@ abstract class TrainCheckinController extends Controller
         }
 
         //try to refresh the departure time of the origin station
-        if ($originStopover && !str_starts_with($hafasTrip->trip_id, 'manual-')) {
+        if ($originStopover && $hafasTrip->source->refreshable()) {
             RefreshStopover::dispatchAfterResponse(
                 $originStopover
             );
@@ -276,11 +276,11 @@ abstract class TrainCheckinController extends Controller
 
         if ($distance === 0 || ($oldDistance !== 0 && $distance / $oldDistance >= 1.15)) {
             Log::debug(sprintf(
-                             'Distance deviation for status #%d is greater than 15 percent. Original: %d, new: %d',
-                             $status->id,
-                             $oldDistance,
-                             $distance
-                         ));
+                           'Distance deviation for status #%d is greater than 15 percent. Original: %d, new: %d',
+                           $status->id,
+                           $oldDistance,
+                           $distance
+                       ));
             throw new DistanceDeviationException();
         }
 

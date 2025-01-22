@@ -77,7 +77,9 @@ export default {
       this.$refs.map.invalidateSize();
     },
     removeStopover(index) {
-      this.$refs.map.removeMarker(index);
+      if (this.stopovers[index].station.id) {
+        this.$refs.map.removeMarker(index);
+      }
       this.stopovers.splice(index, 1);
       this.validateTimes(); // Optional: Zeiten erneut validieren
     },
