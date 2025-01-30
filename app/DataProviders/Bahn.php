@@ -328,7 +328,7 @@ class Bahn extends Controller implements DataProviderInterface
             $category = $category->getHTT()->value;
         }
 
-        $tripLineName = $cachedData['lineName'] ?? '';
+        $tripLineName = $cachedData['lineName'] ?? $lineName ?? '';
 
         // get trip number from first stop
         $tripNumber = isset($rawJourney['halte'][0]['nummer']) ? (int) $rawJourney['halte'][0]['nummer'] : 0;
