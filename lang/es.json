@@ -820,5 +820,15 @@
     "trip_creation.no-valid-times": "Los horarios de las estaciones no están en el orden cronológico correcto.",
     "welcome.header.open-source": "Open source. Libre. Ahora y siempre.",
     "welcome.hero.map.description": "Visualiza la ubicación de tu vehículo en el mapa y comparte tu viaje con los demás.",
-    "trip-info.title": ":linename a las :date"
+    "trip-info.title": ":linename a las :date",
+    "transport_types.express": "Express",
+    "transport_types.national": "Trenes Intercity y Eurocity",
+    "requested-timestamp": "Marca de tiempo solicitada",
+    "transport_types.nationalExpress": "Trenes de alta velocidad",
+    "trip_creation.form.trip_data": "Información del viaje",
+    "trip_creation.form.map": "Información del viaje",
+    "status.hidden-body": "El texto del estado no es visible a otros usuarios.",
+    "status.locked-visibility": "No puedes cambiar la visibilidad de este estado.",
+    "successfully-deleted": "Eliminado correctamente",
+    "transport_types.regionalExp": "Trenes regionales y express"
 }
