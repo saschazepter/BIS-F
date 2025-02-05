@@ -17,7 +17,7 @@ class PasswordResetTest extends FeatureTestCase
         $this->assertGuest();
         Notification::fake();
 
-        $user     = User::factory()->create();
+        $user     = User::factory(['created_at' => now()->subDay()])->create();
         $response = $this->followingRedirects()
                          ->post(route('password.email'), [
                              'email' => $user->email,
@@ -40,7 +40,7 @@ class PasswordResetTest extends FeatureTestCase
     public function testPasswordResetWithCorrectToken(): void {
         $this->assertGuest();
 
-        $user = User::factory()->create();
+        $user     = User::factory(['created_at' => now()->subDay()])->create();
         Notification::fake();
         $response = $this->followingRedirects()
                          ->post(route('password.email'), [
