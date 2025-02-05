@@ -9,6 +9,7 @@ use App\Enum\User\FriendCheckinSetting;
 use App\Exceptions\RateLimitExceededException;
 use App\Http\Controllers\Backend\SettingsController as BackendSettingsController;
 use App\Http\Resources\UserProfileSettingsResource;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -132,12 +133,16 @@ class SettingsController extends Controller
         }
     }
 
-    public function resendMail(): void {
+    public function resendMail(): JsonResponse {
         try {
-            auth()->user()->sendEmailVerificationNotification();
-            $this->sendResponse('', 204);
+            $user = auth()->user();
+            if($user->privacy_ack_at === null) {
+                return response()->json(['error' => 'privacy not acknowledged'], 400);
+            }
+            $user->notify(new VerifyEmail);
+            return response()->json(null, 204);
         } catch (RateLimitExceededException) {
-            $this->sendError(error: __('email.verification.too-many-requests'), code: 429);
+            return $this->sendError(error: __('email.verification.too-many-requests'), code: 429);
         }
     }
 

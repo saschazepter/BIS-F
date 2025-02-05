@@ -14,6 +14,7 @@ use App\Http\Controllers\Backend\User\TokenController;
 use App\Http\Controllers\Backend\WebhookController;
 use App\Http\Controllers\Controller;
 use DateTimeZone;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
@@ -74,9 +75,9 @@ class SettingsController extends Controller
 
         auth()->user()->update($validated);
 
-        if (!auth()->user()->hasVerifiedEmail()) {
+        if (auth()->user()->email_verified_at === null) { // if email is not verified
             try {
-                auth()->user()->sendEmailVerificationNotification();
+                auth()->user()->notify(new VerifyEmail);
                 session()->flash('info', __('email.verification.sent'));
             } catch (RateLimitExceededException) {
                 session()->flash('error', __('email.verification.too-many-requests'));

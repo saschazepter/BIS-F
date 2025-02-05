@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Exceptions\RateLimitExceededException;
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Auth\VerifiesEmails;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -51,11 +52,11 @@ class VerificationController extends Controller
      * @return JsonResponse|RedirectResponse
      */
     public function resend(Request $request): JsonResponse|RedirectResponse {
-        if ($request->user()->hasVerifiedEmail()) {
+        if ($request->user()->email_verified_at !== null) { // if email is already verified
             return $request->wantsJson() ? new JsonResponse([], 204) : redirect($this->redirectPath());
         }
         try {
-            $request->user()->sendEmailVerificationNotification();
+            $request->user()->notify(new VerifyEmail);
 
             return $request->wantsJson()
                 ? new JsonResponse([], 202)

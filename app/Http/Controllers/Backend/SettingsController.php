@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend;
 use App\Exceptions\RateLimitExceededException;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -24,7 +25,7 @@ abstract class SettingsController extends Controller
         if (in_array('email', $fields, true) && $fields['email'] !== $user->email) {
             $fields['email_verified_at'] = null;
             $fields['email']             = strtolower($fields['email']);
-            $user->sendEmailVerificationNotification();
+            $user->notify(new VerifyEmail);
         }
 
         // map api fields to model fields for update
