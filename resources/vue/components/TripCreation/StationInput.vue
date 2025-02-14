@@ -26,8 +26,8 @@ export default {
     return {
       timeFieldA: "--:--",
       timeFieldB: "--:--",
-      station: null,
       stationInput: "",
+      sidebarStationInput: "",
       loading: false,
       autocompleteList: [],
       recent: [],
@@ -89,6 +89,7 @@ export default {
     setStation(item) {
       this.stationInput = item.name;
       this.$emit('update:station', item);
+      this.sidebarStationInput = item.name;
       this.autocompleteList = [];
       this.pauseAutoComplete = true;
     },
@@ -216,7 +217,7 @@ export default {
   <div class="input-group">
     <input type="text" class="form-control mb-2" :placeholder="placeholder"
            :aria-label="placeholder" aria-describedby="basic-addon1"
-           v-model="stationInput" @focusin="showModal"
+           v-model="sidebarStationInput" @focusin="showModal"
     >
     <span class="input-group-text font-monospace" v-if="departure && arrival" @click="showModalFocusTime(false)">
       {{ this.timeFieldA }}
