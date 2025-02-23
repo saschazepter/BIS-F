@@ -7,6 +7,7 @@ use App\Exceptions\UnknownDataProvider;
 class DataProviderBuilder
 {
     public function build(?bool $cache = null): DataProviderInterface {
+        return new Motis();
         $dp = match (config('trwl.data_provider')) {
             'hafas' => new Hafas(),
             'bahn'  => new Bahn(),
