@@ -7,7 +7,6 @@ use App\Dto\Internal\BahnTrip;
 use App\Dto\Internal\Departure;
 use App\Enum\HafasTravelType;
 use App\Enum\MotisCategory;
-use App\Enum\ReiseloesungCategory;
 use App\Enum\TravelType;
 use App\Enum\TripSource;
 use App\Exceptions\HafasException;
@@ -23,7 +22,6 @@ use App\Objects\LineSegment;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use JsonException;
@@ -79,7 +77,8 @@ class Motis extends Controller implements DataProviderInterface
             foreach ($rawStations as $rawStation) {
                 $station = $stationCache->where('stationIdentifiers.identifier', $rawStation['id'])->first();
                 if ($station === null) {
-                    $station = $this->createStation($rawStation);
+                    $rawStation['stopId'] = $rawStation['id'];
+                    $station              = $this->createStation($rawStation);
                 }
                 $stations->push($station);
             }
@@ -142,7 +141,7 @@ class Motis extends Controller implements DataProviderInterface
         int         $duration = 15,
         ?TravelType $type = null,
         bool        $localtime = false
-    ) {
+    ): Collection {
         try {
             $station->load('stationIdentifiers');
             // get transitous identifier
@@ -190,25 +189,12 @@ class Motis extends Controller implements DataProviderInterface
                     $departureStation = $this->getStationsFromDb([$rawDepartureStation['stopId']])->first();
                     if ($departureStation === null) {
                         // if station does not exist, request it from API
-                        $departureStation = $this->createStation([
-                                                                     'id'   => $rawDepartureStation['stopId'],
-                                                                     'name' => $rawDepartureStation['name'],
-                                                                     'lat'  => $rawDepartureStation['lat'],
-                                                                     'lon'  => $rawDepartureStation['lon'],
-                                                                 ]);
+                        $departureStation = $this->createStation($rawDepartureStation);
                     }
                 } catch (Exception $exception) {
                     Log::error($exception->getMessage());
                     $departureStation = $station;
                 }
-
-                // Cache data used for trip creation since another endpoints do not provide them
-                // todo: check if this is needed in transitous
-                Cache::add(
-                    $tripId,
-                    ['category' => $hafasTravelType, 'lineName' => $tripLineName],
-                    now()->addMinutes(30)
-                );
 
                 $departure = new Departure(
                     station:          $departureStation,
@@ -243,12 +229,9 @@ class Motis extends Controller implements DataProviderInterface
     /**
      * @throws HafasException
      */
-    private function fetchJourney(string $journeyId, bool $poly = false): array|null {
+    private function fetchJourney(string $tripId): array|null {
         try {
-            $response = Http::get("https://www.bahn.de/web/api/reiseloesung/fahrt", [
-                'journeyId' => $journeyId,
-                'poly'      => $poly ? 'true' : 'false',
-            ]);
+            $response = Http::get("https://api.transitous.org/api/v1/trip", ['tripId' => $tripId,]);
 
             if ($response->ok()) {
                 CacheKey::increment(HCK::TRIPS_SUCCESS);
@@ -288,57 +271,43 @@ class Motis extends Controller implements DataProviderInterface
      * @throws HafasException|JsonException
      */
     public function fetchHafasTrip(string $tripID, string $lineName): Trip {
-        $timezone = "Europe/Berlin";
-
-        $rawJourney = $this->fetchJourney($tripID, true);
+        $rawJourney = $this->fetchJourney($tripID);
         if ($rawJourney === null) {
             // sorry
             throw new HafasException(__('messages.exception.generalHafas'));
         }
         // get cached data from departure board
-        $cachedData          = Cache::get($tripID);
-        $stopoverCacheFromDB = Station::whereIn('ibnr', collect($rawJourney['halte'])->pluck('extId'))->get();
+        $leg                 = $rawJourney['legs'][0];
+        $rawStopovers        = $leg['intermediateStops'];
+        $stopoverCacheFromDB = $this->getStationsFromDb(array_column($rawStopovers, 'stopId'));
 
-        $originStation      = $stopoverCacheFromDB->where('ibnr', $rawJourney['halte'][0]['extId'])->first() ?? self::getStationFromHalt($rawJourney['halte'][0]);
-        $destinationStation = $stopoverCacheFromDB->where('ibnr', $rawJourney['halte'][count($rawJourney['halte']) - 1]['extId'])->first() ?? self::getStationFromHalt($rawJourney['halte'][count($rawJourney['halte']) - 1]);
-        $departure          = isset($rawJourney['halte'][0]['abfahrtsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][0]['abfahrtsZeitpunkt'], $timezone) : null;
-        $arrival            = isset($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt']) ? Carbon::parse($rawJourney['halte'][count($rawJourney['halte']) - 1]['ankunftsZeitpunkt'], $timezone) : null;
+        $originStation      = $this->getStationsFromDb($leg['from']['stopId'])->first() ?? $this->createStation($leg['from']);
+        $destinationStation = $this->getStationsFromDb($leg['to']['stopId'])->first() ?? $this->createStation($leg['to']);
+        $departure          = isset($leg['from']['departure']) ? Carbon::parse($leg['from']['departure']) : null;
+        $arrival            = isset($leg['to']['arrival']) ? Carbon::parse($leg['to']['arrival']) : null;
+        $category           = MotisCategory::tryFrom($leg['mode'])?->getHTT()->value ?? HafasTravelType::REGIONAL;
+        $tripLineName       = !empty($leg['routeShortName']) ? $leg['routeShortName'] : $lineName;
 
-        foreach ($rawJourney['halte'] as $halt) {
-            if (!empty($halt['kategorie'])) {
-                $category = ReiseloesungCategory::tryFrom($halt['kategorie']);
-                break;
-            }
-        }
-        if (empty($category)) {
-            // get cached category since Bahn API does not reveal that on the journey endpoint?!
-            $category = $cachedData['category'] ?? HafasTravelType::REGIONAL->value;
-        } else {
-            $category = $category->getHTT()->value;
-        }
-
-        $tripLineName = $cachedData['lineName'] ?? $lineName ?? '';
-
-        // get trip number from first stop
-        $tripNumber = isset($rawJourney['halte'][0]['nummer']) ? (int) $rawJourney['halte'][0]['nummer'] : 0;
-        if ($tripNumber === 0) {
-            preg_match('/#ZE#(\d+)/', $tripID, $matches);
-            if (count($matches) > 1) {
-                $tripNumber = $matches[1];
-            }
-        }
+        // add origin and destination to stopovers
+        $rawStopovers[] = $leg['from'];
+        $rawStopovers[] = $leg['to'];
 
         $stopovers = collect();
-        foreach ($rawJourney['halte'] as $rawHalt) {
-            $station = $stopoverCacheFromDB->where('ibnr', $rawHalt['extId'])->first() ?? self::getStationFromHalt($rawHalt);
+        foreach ($rawStopovers as $rawStop) {
+            $station = $stopoverCacheFromDB->where('stationIdentifiers', function($query) use ($rawStop) {
+                $query->where('identifier', $rawStop['stopId'])
+                      ->where('type', 'motis')
+                      ->where('origin', 'transitous');
+            })->first();
+            $station = $station ?? $this->createStation($rawStop);
 
-            $departurePlanned = isset($rawHalt['abfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['abfahrtsZeitpunkt'], $timezone) : null;
-            $departureReal    = isset($rawHalt['ezAbfahrtsZeitpunkt']) ? Carbon::parse($rawHalt['ezAbfahrtsZeitpunkt'], $timezone) : null;
-            $arrivalPlanned   = isset($rawHalt['ankunftsZeitpunkt']) ? Carbon::parse($rawHalt['ankunftsZeitpunkt'], $timezone) : null;
-            $arrivalReal      = isset($rawHalt['ezAnkunftsZeitpunkt']) ? Carbon::parse($rawHalt['ezAnkunftsZeitpunkt'], $timezone) : null;
+            $departurePlanned = isset($rawStop['scheduledDeparture']) ? Carbon::parse($rawStop['scheduledDeparture']) : null;
+            $departureReal    = isset($rawStop['departure']) ? Carbon::parse($rawStop['departure']) : null;
+            $arrivalPlanned   = isset($rawStop['scheduledArrival']) ? Carbon::parse($rawStop['scheduledArrival']) : null;
+            $arrivalReal      = isset($rawStop['arrival']) ? Carbon::parse($rawStop['arrival']) : null;
             // new API does not differ between departure and arrival platform
-            $platformPlanned = $rawHalt['gleis'] ?? null;
-            $platformReal    = $rawHalt['ezGleis'] ?? $platformPlanned;
+            $platformPlanned = $rawStop['scheduledTrack'] ?? null;
+            $platformReal    = $rawStop['track'] ?? $platformPlanned;
 
             $stopover = new Stopover([
                                          'train_station_id'           => $station->id,
@@ -360,9 +329,9 @@ class Motis extends Controller implements DataProviderInterface
                                             'trip_id' => $tripID,
                                         ], [
                                             'category'       => $category,
-                                            'number'         => $tripNumber,
+                                            'number'         => $tripLineName,
                                             'linename'       => $tripLineName,
-                                            'journey_number' => $tripNumber,
+                                            'journey_number' => null,
                                             'operator_id'    => null, //TODO
                                             'origin_id'      => $originStation->id,
                                             'destination_id' => $destinationStation->id,
@@ -446,16 +415,16 @@ class Motis extends Controller implements DataProviderInterface
      * @todo move to repository
      */
     public function createStation(mixed $rawStation): Station {
-        $station = Station::create([
-                                       'name'      => $rawStation['name'],
-                                       'latitude'  => $rawStation['lat'],
-                                       'longitude' => $rawStation['lon'],
-                                       'source'    => 'transitous',
-                                   ]);
+        $station = Station::updateOrCreate([
+                                               'name'      => $rawStation['name'],
+                                               'latitude'  => $rawStation['lat'],
+                                               'longitude' => $rawStation['lon'],
+                                               'source'    => 'transitous',
+                                           ]);
         $station->stationIdentifiers()->create([
                                                    'type'       => 'motis',
                                                    'origin'     => 'transitous',
-                                                   'identifier' => $rawStation['id']
+                                                   'identifier' => $rawStation['stopId']
                                                ]);
         return $station;
     }
@@ -465,7 +434,11 @@ class Motis extends Controller implements DataProviderInterface
      *
      * @return Collection<Station>
      */
-    public function getStationsFromDb(array $stationIds): Collection {
+    public function getStationsFromDb(string|array $stationIds): Collection {
+        if (is_string($stationIds)) {
+            $stationIds = [$stationIds];
+        }
+
         return Station::whereRelation('stationIdentifiers', function($query) use ($stationIds) {
             $query->whereIn('identifier', $stationIds)
                   ->where('type', 'motis')

@@ -31,7 +31,7 @@ export default {
       firstFetchTime: null,
       pushState: null,
       fastCheckinIbnr: null,
-      useInternalIdentifiers: false,
+      useInternalIdentifiers: true,
     };
   },
   methods: {
@@ -45,7 +45,7 @@ export default {
       const data = new URLSearchParams({
         tripId: selectedItem.tripId,
         lineName: selectedItem.line.name,
-        start: this.meta.station.ibnr,
+        start: this.useInternalIdentifiers ? this.meta.station.id : this.meta.station.ibnr,
         departure: selectedItem.when,
       });
 
@@ -147,7 +147,6 @@ export default {
           this.fastCheckinIbnr = urlParams.get('destination');
         }
         if (urlParams.has('idType')) {
-          //ToDo change this form to use trwl-id per default and use db-ibnr for hafas-related-input
           this.useInternalIdentifiers = urlParams.get('idType') === 'trwl';
         }
         this.show = true;
