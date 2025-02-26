@@ -9,7 +9,7 @@ class GeoService
 {
     private const int EQUATORIAL_RADIUS_IN_METERS = 6378137;
 
-    public function calculateDistance(Coordinate $start, Coordinate $end): float {
+    public function getDistance(Coordinate $start, Coordinate $end): float {
         if ($start->longitude === $end->longitude && $start->latitude === $end->latitude) {
             return 0.0;
         }
@@ -22,7 +22,7 @@ class GeoService
                      * self::EQUATORIAL_RADIUS_IN_METERS);
     }
 
-    public function boundingBoxFromCenter(Coordinate $center, int $radius, int $precision = 6): BoundingBox {
+    public function getBoundingBox(Coordinate $center, int $radius, int $precision = 6): BoundingBox {
         $lat = deg2rad($center->latitude);
         $lon = deg2rad($center->longitude);
         $d   = $radius / self::EQUATORIAL_RADIUS_IN_METERS;

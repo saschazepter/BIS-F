@@ -19,7 +19,7 @@ readonly class LineSegment
      * @deprecated Use GeoService::calculateDistance instead
      */
     public function calculateDistance(): int {
-        return (new GeoService())->calculateDistance($this->start, $this->finish);
+        return (new GeoService())->getDistance($this->start, $this->finish);
     }
 
     /**

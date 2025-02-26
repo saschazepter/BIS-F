@@ -101,7 +101,7 @@ class LocationController
             foreach ($polyline->features as $key => $point) {
                 $point = Coordinate::fromGeoJson($point);
                 if ($recentPoint !== null && $point !== null) {
-                    $distance += $this->geoService->calculateDistance($recentPoint, $point);
+                    $distance += $this->geoService->getDistance($recentPoint, $point);
                     if ($distance >= $meters) {
                         break;
                     }
@@ -136,7 +136,7 @@ class LocationController
                 $lastStopover = $stopover;
                 continue;
             }
-            $fullDistance += $this->geoService->calculateDistance($lastStopover, $stopover);
+            $fullDistance += $this->geoService->getDistance($lastStopover, $stopover);
             $lastStopover = $stopover;
         }
         return $fullDistance;
@@ -293,7 +293,7 @@ class LocationController
                     continue;
                 }
 
-                $distance += $this->geoService->calculateDistance(
+                $distance += $this->geoService->getDistance(
                     new Coordinate(
                         $lastStopover->geometry->coordinates[1],
                         $lastStopover->geometry->coordinates[0]
@@ -328,7 +328,7 @@ class LocationController
                 $lastStopover = $stopover;
                 continue;
             }
-            $distance     += $this->geoService->calculateDistance(
+            $distance     += $this->geoService->getDistance(
                 new Coordinate($lastStopover->station->latitude, $lastStopover->station->longitude),
                 new Coordinate($stopover->station->latitude, $stopover->station->longitude)
             );

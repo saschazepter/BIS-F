@@ -14,13 +14,13 @@ use App\Helpers\CacheKey;
 use App\Helpers\HCK;
 use App\Http\Controllers\Controller;
 use App\Hydrators\DepartureHydrator;
-use App\Models\PolyLine;
 use App\Models\Station;
 use App\Models\Stopover;
 use App\Models\Trip;
-use App\Objects\LineSegment;
+use App\Services\GeoService;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +28,15 @@ use JsonException;
 
 class Motis extends Controller implements DataProviderInterface
 {
+
+    private GeoService $geoService;
+
+    private const string API_URL = 'https://api.transitous.org/api/v1';
+
+    public function __construct(?GeoService $geoService = null) {
+        $this->geoService = $geoService ?? new GeoService();
+    }
+
     public function getStationByRilIdentifier(string $rilIdentifier): ?Station {
         $station = Station::where('rilIdentifier', $rilIdentifier)->first();
         if ($station !== null) {
@@ -54,34 +63,14 @@ class Motis extends Controller implements DataProviderInterface
      */
     public function getStations(string $query, int $results = 10): Collection {
         try {
-            $url      = "https://www.bahn.de/web/api/reiseloesung/orte?suchbegriff=" . urlencode($query) . "&typ=ALL&limit=" . $results;
-            $url      = sprintf("https://api.transitous.org/api/v1/geocode?text=%s&limit=%d", urlencode($query), $results);
+            $url      = sprintf(self::API_URL . "/geocode?text=%s&limit=%d", urlencode($query), $results);
             $response = Http::get($url);
 
             if (!$response->ok()) {
                 CacheKey::increment(HCK::LOCATIONS_NOT_OK);
             }
 
-            $json        = $response->json();
-            $rawStations = [];
-            foreach ($json as $stationEntry) {
-                if ($stationEntry['type'] !== 'STOP') {
-                    continue;
-                }
-                $rawStations[] = $stationEntry;
-            }
-            $stationIds   = array_column($rawStations, 'id');
-            $stationCache = $this->getStationsFromDb($stationIds);
-
-            $stations = collect();
-            foreach ($rawStations as $rawStation) {
-                $station = $stationCache->where('stationIdentifiers.identifier', $rawStation['id'])->first();
-                if ($station === null) {
-                    $rawStation['stopId'] = $rawStation['id'];
-                    $station              = $this->createStation($rawStation);
-                }
-                $stations->push($station);
-            }
+            $stations = $this->filterStopsFromResults($response);
 
             CacheKey::increment(HCK::LOCATIONS_SUCCESS);
             return $stations;
@@ -98,32 +87,32 @@ class Motis extends Controller implements DataProviderInterface
      * @throws HafasException
      */
     public function getNearbyStations(float $latitude, float $longitude, int $results = 8): Collection {
-        throw new HafasException("Method currently not supported");
+        $center = new Coordinate($latitude, $longitude);
+        $bbox   = $this->geoService->getBoundingBox($center, 100);
+
+        $response = Http::get(self::API_URL . '/map/stops', [
+            'min' => (string) $bbox->lowerRight,
+            'max' => (string) $bbox->upperLeft,
+        ]);
+
+        if (!$response->ok()) {
+            CacheKey::increment(HCK::LOCATIONS_NOT_OK);
+            Log::error('Unknown HAFAS Error (fetchNearbyStations)', [
+                'status' => $response->status(),
+                'body'   => $response->body()
+            ]);
+            throw new HafasException(__('messages.exception.generalHafas'));
+        }
+
+        $stations = $this->filterStopsFromResults($response, 'stopId');
+
+        $stations = $stations->sortBy(function($station) use ($center) {
+            return $this->geoService->getDistance($center, new Coordinate($station->latitude, $station->longitude));
+        });
+
+        CacheKey::increment(HCK::LOCATIONS_SUCCESS);
+        return $stations;
     }
-
-    private function getStationFromHalt(array $rawHalt) {
-        //$station = Station::where('ibnr', $rawHalt['extId'])->first();
-        //if($station !== null) {
-        //    return $station;
-        // }
-
-        //urgh, there is no lat/lon - extract it from id
-        // example id: A=1@O=Druseltal, Kassel@X=9414484@Y=51301106@U=81@L=714800@
-        $matches = [];
-        preg_match('/@X=(-?\d+)@Y=(-?\d+)/', $rawHalt['id'], $matches);
-        $latitude  = $matches[2] / 1000000;
-        $longitude = $matches[1] / 1000000;
-
-        return Station::updateOrCreate([
-                                           'ibnr' => $rawHalt['extId'],
-                                       ], [
-                                           'name'      => $rawHalt['name'],
-                                           'latitude'  => $latitude ?? 0, // Hello Null-Island
-                                           'longitude' => $longitude ?? 0, // Hello Null-Island
-                                           'source'    => TripSource::BAHN_WEB_API->value,
-                                       ]);
-    }
-
 
     /**
      * @param Station         $station
@@ -323,8 +312,6 @@ class Motis extends Controller implements DataProviderInterface
             $stopovers->push($stopover);
         }
 
-        $polyLine = isset($rawJourney['polylineGroup']) ? $this->getPolyLineFromTrip($rawJourney, $stopovers) : null;
-
         $journey = Trip::updateOrCreate([
                                             'trip_id' => $tripID,
                                         ], [
@@ -335,79 +322,14 @@ class Motis extends Controller implements DataProviderInterface
                                             'operator_id'    => null, //TODO
                                             'origin_id'      => $originStation->id,
                                             'destination_id' => $destinationStation->id,
-                                            'polyline_id'    => $polyLine?->id,
+                                            'polyline_id'    => null, //TODO
                                             'departure'      => $departure,
                                             'arrival'        => $arrival,
-                                            'source'         => TripSource::BAHN_WEB_API,
+                                            'source'         => TripSource::TRANSITOUS,
                                         ]);
         $journey->stopovers()->saveMany($stopovers);
 
         return $journey;
-    }
-
-    private function getPolyLineFromTrip($journey, Collection $stopovers): PolyLine {
-        $polyLine = $journey['polylineGroup'];
-        $features = [];
-        foreach ($polyLine['polylineDescriptions'] as $description) {
-            foreach ($description['coordinates'] as $coordinate) {
-                $feature    = [
-                    'type'       => 'Feature',
-                    'geometry'   => [
-                        'type'        => 'Point',
-                        'coordinates' => [
-                            $coordinate['lng'],
-                            $coordinate['lat']
-                        ]
-                    ],
-                    'properties' => new \stdclass()
-                ];
-                $features[] = $feature;
-            }
-        }
-        $geoJson = ['type' => 'FeatureCollection', 'features' => $features];
-
-        // TODO DUPLICATED FROM BROUTERCONTROLLER
-        $highestMappedKey = null;
-        foreach ($stopovers as $stopover) {
-            $properties = [
-                'id'   => $stopover->station->ibnr,
-                'name' => $stopover->station->name,
-            ];
-
-            //Get feature with the lowest distance to station
-            $minDistance       = null;
-            $closestFeatureKey = null;
-            foreach ($geoJson['features'] as $key => $feature) {
-                if (($highestMappedKey !== null && $key <= $highestMappedKey) || !isset($feature['geometry']['coordinates'])) {
-                    //Don't look again at the same stations.
-                    //This is required and very important to prevent bugs for ring lines!
-                    continue;
-                }
-                $distance = (new LineSegment(
-                    new Coordinate($feature['geometry']['coordinates'][1], $feature['geometry']['coordinates'][0]),
-                    new Coordinate($stopover->station->latitude, $stopover->station->longitude)
-                ))->calculateDistance();
-
-                if ($minDistance === null || $distance < $minDistance) {
-                    $minDistance       = $distance;
-                    $closestFeatureKey = $key;
-                }
-            }
-            $highestMappedKey                                      = $closestFeatureKey;
-            $geoJson['features'][$closestFeatureKey]['properties'] = $properties;
-        }
-
-        // Make features to array again, if they get broken by the code above
-        $geoJson['features'] = array_values($geoJson['features']);
-
-        $geoJsonString = json_encode($geoJson);
-        $polyline      = PolyLine::create([
-                                              'hash'      => md5($geoJsonString),
-                                              'polyline'  => $geoJsonString,
-                                              'source'    => 'hafas', // maybe add a new one?
-                                              'parent_id' => null
-                                          ]);
-        return $polyline;
     }
 
     /**
@@ -444,5 +366,34 @@ class Motis extends Controller implements DataProviderInterface
                   ->where('type', 'motis')
                   ->where('origin', 'transitous');
         })->get();
+    }
+
+    /**
+     * @param Response $response
+     *
+     * @return Collection
+     */
+    public function filterStopsFromResults(Response $response, string $identifier = 'id'): Collection {
+        $json        = $response->json();
+        $rawStations = [];
+        foreach ($json as $stationEntry) {
+            if (isset($stationEntry['type']) && $stationEntry['type'] !== 'STOP') {
+                continue;
+            }
+            $rawStations[] = $stationEntry;
+        }
+        $stationIds   = array_column($rawStations, $identifier);
+        $stationCache = $this->getStationsFromDb($stationIds);
+
+        $stations = collect();
+        foreach ($rawStations as $rawStation) {
+            $station = $stationCache->where('stationIdentifiers.identifier', $rawStation[$identifier])->first();
+            if ($station === null) {
+                $rawStation['stopId'] = $rawStation[$identifier];
+                $station              = $this->createStation($rawStation);
+            }
+            $stations->push($station);
+        }
+        return $stations;
     }
 }

@@ -36,7 +36,7 @@ class GeoServiceTest extends UnitTestCase
      * @dataProvider distanceProvider
      */
     public function testDistance($startLat, $startLon, $endLat, $endLon, $expected): void {
-        $result = $this->geoService->calculateDistance(
+        $result = $this->geoService->getDistance(
             new Coordinate($startLat, $startLon),
             new Coordinate($endLat, $endLon)
         );
@@ -48,11 +48,11 @@ class GeoServiceTest extends UnitTestCase
      */
     public function testBoundingBox($lat, $lon, $radius, $topLeftLat, $topLeftLon, $bottomRightLat, $bottomRightLon): void {
         $center      = new Coordinate($lat, $lon);
-        $boundingBox = $this->geoService->boundingBoxFromCenter($center, $radius);
+        $boundingBox = $this->geoService->getBoundingBox($center, $radius);
 
-        $this->assertEquals($topLeftLat, $boundingBox->topLeft->latitude);
-        $this->assertEquals($topLeftLon, $boundingBox->topLeft->longitude);
-        $this->assertEquals($bottomRightLat, $boundingBox->bottomRight->latitude);
-        $this->assertEquals($bottomRightLon, $boundingBox->bottomRight->longitude);
+        $this->assertEquals($topLeftLat, $boundingBox->upperLeft->latitude);
+        $this->assertEquals($topLeftLon, $boundingBox->upperLeft->longitude);
+        $this->assertEquals($bottomRightLat, $boundingBox->lowerRight->latitude);
+        $this->assertEquals($bottomRightLon, $boundingBox->lowerRight->longitude);
     }
 }

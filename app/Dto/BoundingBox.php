@@ -6,20 +6,20 @@ use Illuminate\Contracts\Support\Arrayable;
 
 class BoundingBox implements Arrayable
 {
-    public Coordinate $topLeft;
-    public Coordinate $bottomRight;
+    public Coordinate $upperLeft;
+    public Coordinate $lowerRight;
 
     public function __construct(Coordinate $topLeft, Coordinate $bottomRight)
     {
-        $this->topLeft = $topLeft;
-        $this->bottomRight = $bottomRight;
+        $this->upperLeft = $topLeft;
+        $this->lowerRight = $bottomRight;
     }
 
     public function toArray(): array
     {
         return [
-            'topLeft' => $this->topLeft->toArray(),
-            'bottomRight' => $this->bottomRight->toArray()
+            'topLeft' => $this->upperLeft->toArray(),
+            'bottomRight' => $this->lowerRight->toArray()
         ];
     }
 }
