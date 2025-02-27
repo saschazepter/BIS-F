@@ -2,6 +2,7 @@
 
 namespace App\DataProviders;
 
+use App\DataProviders\Repositories\MotisRepository;
 use App\Dto\Coordinate;
 use App\Dto\Internal\BahnTrip;
 use App\Dto\Internal\Departure;
@@ -30,10 +31,14 @@ class Motis extends Controller implements DataProviderInterface
 {
 
     private GeoService $geoService;
+    private MotisRepository $motisRepository;
+    private TripSource $source;
 
     private const string API_URL = 'https://api.transitous.org/api/v1';
 
-    public function __construct(?GeoService $geoService = null) {
+    public function __construct(TripSource $source, ?MotisRepository $motisRepository = null, ?GeoService $geoService = null) {
+        $this->source     = $source;
+        $this->motisRepository = $motisRepository ?? new MotisRepository();
         $this->geoService = $geoService ?? new GeoService();
     }
 
@@ -149,8 +154,7 @@ class Motis extends Controller implements DataProviderInterface
                 }
             }
 
-            $requestUrl = "https://api.transitous.org/api/v1/stoptimes" . '?' . http_build_query($params);
-            $response   = Http::get($requestUrl);
+            $response   = Http::get(self::API_URL . '/stoptimes', $params);
 
             if (!$response->ok()) {
                 CacheKey::increment(HCK::DEPARTURES_NOT_OK);
@@ -175,10 +179,10 @@ class Motis extends Controller implements DataProviderInterface
                 $platformPlanned = $rawDepartureStation['scheduledTrack'] ?? '';
                 $platformReal    = $rawDepartureStation['track'] ?? $platformPlanned;
                 try {
-                    $departureStation = $this->getStationsFromDb([$rawDepartureStation['stopId']])->first();
+                    $departureStation = $this->motisRepository->getStationsFromDb([$rawDepartureStation['stopId']], $this->source)->first();
                     if ($departureStation === null) {
                         // if station does not exist, request it from API
-                        $departureStation = $this->createStation($rawDepartureStation);
+                        $departureStation = $this->motisRepository->createStation($rawDepartureStation, $this->source);
                     }
                 } catch (Exception $exception) {
                     Log::error($exception->getMessage());
@@ -248,7 +252,7 @@ class Motis extends Controller implements DataProviderInterface
     /**
      * @throws HafasException|JsonException
      */
-    public function fetchRawHafasTrip(string $tripId, string $lineName) {
+    public function fetchRawHafasTrip(string $tripId, string $lineName): ?array {
         return $this->fetchJourney($tripId, true);
     }
 
@@ -268,10 +272,10 @@ class Motis extends Controller implements DataProviderInterface
         // get cached data from departure board
         $leg                 = $rawJourney['legs'][0];
         $rawStopovers        = $leg['intermediateStops'];
-        $stopoverCacheFromDB = $this->getStationsFromDb(array_column($rawStopovers, 'stopId'));
+        $stopoverCacheFromDB = $this->motisRepository->getStationsFromDb(array_column($rawStopovers, 'stopId'), $this->source);
 
-        $originStation      = $this->getStationsFromDb($leg['from']['stopId'])->first() ?? $this->createStation($leg['from']);
-        $destinationStation = $this->getStationsFromDb($leg['to']['stopId'])->first() ?? $this->createStation($leg['to']);
+        $originStation      = $this->motisRepository->getStationsFromDb($leg['from']['stopId'], $this->source)->first() ?? $this->motisRepository->createStation($leg['from'], $this->source);
+        $destinationStation = $this->motisRepository->getStationsFromDb($leg['to']['stopId'], $this->source)->first() ?? $this->motisRepository->createStation($leg['to'], $this->source);
         $departure          = isset($leg['from']['departure']) ? Carbon::parse($leg['from']['departure']) : null;
         $arrival            = isset($leg['to']['arrival']) ? Carbon::parse($leg['to']['arrival']) : null;
         $category           = MotisCategory::tryFrom($leg['mode'])?->getHTT()->value ?? HafasTravelType::REGIONAL;
@@ -288,7 +292,7 @@ class Motis extends Controller implements DataProviderInterface
                       ->where('type', 'motis')
                       ->where('origin', 'transitous');
             })->first();
-            $station = $station ?? $this->createStation($rawStop);
+            $station = $station ?? $this->motisRepository->createStation($rawStop, $this->source);
 
             $departurePlanned = isset($rawStop['scheduledDeparture']) ? Carbon::parse($rawStop['scheduledDeparture']) : null;
             $departureReal    = isset($rawStop['departure']) ? Carbon::parse($rawStop['departure']) : null;
@@ -325,54 +329,13 @@ class Motis extends Controller implements DataProviderInterface
                                             'polyline_id'    => null, //TODO
                                             'departure'      => $departure,
                                             'arrival'        => $arrival,
-                                            'source'         => TripSource::TRANSITOUS,
+                                            'source'         => $this->source,
                                         ]);
         $journey->stopovers()->saveMany($stopovers);
 
         return $journey;
     }
 
-    /**
-     * @return mixed
-     * @todo move to repository
-     */
-    public function createStation(mixed $rawStation): Station {
-        $station = Station::updateOrCreate([
-                                               'name'      => $rawStation['name'],
-                                               'latitude'  => $rawStation['lat'],
-                                               'longitude' => $rawStation['lon'],
-                                               'source'    => 'transitous',
-                                           ]);
-        $station->stationIdentifiers()->create([
-                                                   'type'       => 'motis',
-                                                   'origin'     => 'transitous',
-                                                   'identifier' => $rawStation['stopId']
-                                               ]);
-        return $station;
-    }
-
-    /**
-     * @param array $stationIds
-     *
-     * @return Collection<Station>
-     */
-    public function getStationsFromDb(string|array $stationIds): Collection {
-        if (is_string($stationIds)) {
-            $stationIds = [$stationIds];
-        }
-
-        return Station::whereRelation('stationIdentifiers', function($query) use ($stationIds) {
-            $query->whereIn('identifier', $stationIds)
-                  ->where('type', 'motis')
-                  ->where('origin', 'transitous');
-        })->get();
-    }
-
-    /**
-     * @param Response $response
-     *
-     * @return Collection
-     */
     public function filterStopsFromResults(Response $response, string $identifier = 'id'): Collection {
         $json        = $response->json();
         $rawStations = [];
@@ -383,14 +346,14 @@ class Motis extends Controller implements DataProviderInterface
             $rawStations[] = $stationEntry;
         }
         $stationIds   = array_column($rawStations, $identifier);
-        $stationCache = $this->getStationsFromDb($stationIds);
+        $stationCache = $this->motisRepository->getStationsFromDb($stationIds, $this->source);
 
         $stations = collect();
         foreach ($rawStations as $rawStation) {
             $station = $stationCache->where('stationIdentifiers.identifier', $rawStation[$identifier])->first();
             if ($station === null) {
                 $rawStation['stopId'] = $rawStation[$identifier];
-                $station              = $this->createStation($rawStation);
+                $station              = $this->motisRepository->createStation($rawStation, $this->source);
             }
             $stations->push($station);
         }
