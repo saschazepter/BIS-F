@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\API\v1;
 
-use App\DataProviders\Hafas;
 use App\Dto\Transport\Station as StationDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
@@ -259,7 +258,8 @@ class TransportController extends Controller
             return $this->sendResponse(data: new TripResource($trip));
         } catch (StationNotOnTripException) {
             return $this->sendError(__('controller.transport.not-in-stopovers', [], 'en'), 400);
-        } catch (HafasException) {
+        } catch (HafasException $exception) {
+            report($exception);
             return $this->sendError(__('messages.exception.hafas.502', [], 'en'), 503);
         }
     }
@@ -526,7 +526,7 @@ class TransportController extends Controller
      */
     public function getTrainStationAutocomplete(string $query): JsonResponse {
         try {
-            $trainAutocompleteResponse = (new TransportBackend(Hafas::class))->getTrainStationAutocomplete($query);
+            $trainAutocompleteResponse = (new TransportBackend(Auth::user()))->getTrainStationAutocomplete($query);
             return $this->sendResponse($trainAutocompleteResponse);
         } catch (HafasException $e) {
             // check if app is in debug mode

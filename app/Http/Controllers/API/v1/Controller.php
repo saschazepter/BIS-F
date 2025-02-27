@@ -9,7 +9,7 @@ use App\Models\User;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 /**
@@ -102,8 +102,11 @@ class Controller extends \App\Http\Controllers\Controller
     protected DataProviderInterface $dataProvider;
 
     public function __construct() {
-        // todo: set data provider based on user settings
-        $this->dataProvider = (new DataProviderBuilder())->build();
+        $this->middleware(function($request, $next) {
+            $this->dataProvider = (new DataProviderBuilder())->build(null, Auth::user());
+
+            return $next($request);
+        });
     }
 
     public function sendResponse(

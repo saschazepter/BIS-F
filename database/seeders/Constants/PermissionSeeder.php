@@ -20,6 +20,7 @@ class PermissionSeeder extends Seeder
         $roleClosedBeta             = Role::updateOrCreate(['name' => 'closed-beta']);
         $roleDisallowManualTrips    = Role::updateOrCreate(['name' => 'disallow-manual-trips']);
         $roleDeactivateAccountUsage = Role::updateOrCreate(['name' => 'deactivate-account-usage']);
+        Role::updateOrCreate(['name' => 'transitous']);
 
         //Create permissions
         $permissionViewBackend                    = Permission::updateOrCreate(['name' => 'view-backend']);

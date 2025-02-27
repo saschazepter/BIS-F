@@ -7,8 +7,10 @@ use App\Exceptions\UnknownDataProvider;
 
 class DataProviderBuilder
 {
-    public function build(?bool $cache = null): DataProviderInterface {
-        return new Motis(TripSource::TRANSITOUS);
+    public function build(?bool $cache = null, $user = null): DataProviderInterface {
+        if ($user?->hasRole('transitous')) {
+            return new Motis(TripSource::TRANSITOUS);
+        }
         $dp = match (config('trwl.data_provider')) {
             'hafas' => new Hafas(),
             'bahn'  => new Bahn(),

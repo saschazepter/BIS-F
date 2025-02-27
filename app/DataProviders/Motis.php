@@ -30,16 +30,16 @@ use JsonException;
 class Motis extends Controller implements DataProviderInterface
 {
 
-    private GeoService $geoService;
+    private GeoService      $geoService;
     private MotisRepository $motisRepository;
-    private TripSource $source;
+    private TripSource      $source;
 
     private const string API_URL = 'https://api.transitous.org/api/v1';
 
     public function __construct(TripSource $source, ?MotisRepository $motisRepository = null, ?GeoService $geoService = null) {
-        $this->source     = $source;
+        $this->source          = $source;
         $this->motisRepository = $motisRepository ?? new MotisRepository();
-        $this->geoService = $geoService ?? new GeoService();
+        $this->geoService      = $geoService ?? new GeoService();
     }
 
     public function getStationByRilIdentifier(string $rilIdentifier): ?Station {
@@ -154,7 +154,7 @@ class Motis extends Controller implements DataProviderInterface
                 }
             }
 
-            $response   = Http::get(self::API_URL . '/stoptimes', $params);
+            $response = Http::get(self::API_URL . '/stoptimes', $params);
 
             if (!$response->ok()) {
                 CacheKey::increment(HCK::DEPARTURES_NOT_OK);
@@ -224,7 +224,7 @@ class Motis extends Controller implements DataProviderInterface
      */
     private function fetchJourney(string $tripId): array|null {
         try {
-            $response = Http::get("https://api.transitous.org/api/v1/trip", ['tripId' => $tripId,]);
+            $response = Http::get(self::API_URL . "/trip", ['tripId' => $tripId,]);
 
             if ($response->ok()) {
                 CacheKey::increment(HCK::TRIPS_SUCCESS);
@@ -329,7 +329,8 @@ class Motis extends Controller implements DataProviderInterface
                                             'polyline_id'    => null, //TODO
                                             'departure'      => $departure,
                                             'arrival'        => $arrival,
-                                            'source'         => $this->source,
+                                            'source'         => $this->source->value,
+                                            'motis_source'   => $this->source->value . '/' . $leg['source'],
                                         ]);
         $journey->stopovers()->saveMany($stopovers);
 
