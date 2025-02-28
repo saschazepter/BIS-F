@@ -3,7 +3,7 @@
 namespace App\DataProviders\Repositories;
 
 use App\Dto\Coordinate;
-use App\Enum\TripSource;
+use App\Enum\DataProvider;
 use App\Models\Station;
 use App\Services\GeoService;
 use Illuminate\Support\Collection;
@@ -17,23 +17,23 @@ class MotisRepository
         $this->geoService = $geoService ?? new GeoService();
     }
 
-    public function createStation(mixed $rawStation, TripSource $source): Station {
+    public function createStation(mixed $rawStation, DataProvider $source): Station {
         $coordinates = new Coordinate($rawStation['lat'], $rawStation['lon']);
         $bbox        = $this->geoService->getBoundingBox($coordinates, 500);
 
         $stations = Station::where('latitude', '>=', $bbox->lowerRight->latitude)
-                          ->where('latitude', '<=', $bbox->upperLeft->latitude)
-                          ->where('longitude', '>=', $bbox->upperLeft->longitude)
-                          ->where('longitude', '<=', $bbox->lowerRight->longitude)
-                          ->get();
+                           ->where('latitude', '<=', $bbox->upperLeft->latitude)
+                           ->where('longitude', '>=', $bbox->upperLeft->longitude)
+                           ->where('longitude', '<=', $bbox->lowerRight->longitude)
+                           ->get();
 
         $stations = $stations->map(function($station) use ($rawStation) {
-            $stationName = strtoupper($station->name);
+            $stationName    = strtoupper($station->name);
             $rawStationName = strtoupper($rawStation['name']);
 
-            $replacements = ['HAUPTBAHNHOF' => 'HBF', 'BAHNHOF' => 'BF', 'H ' => '',' ' => ''];
+            $replacements = ['HAUPTBAHNHOF' => 'HBF', 'BAHNHOF' => 'BF', 'H ' => '', ' ' => ''];
             foreach ($replacements as $search => $replace) {
-                $stationName = str_replace($search, $replace, $stationName);
+                $stationName    = str_replace($search, $replace, $stationName);
                 $rawStationName = str_replace($search, $replace, $rawStationName);
             }
 
@@ -65,7 +65,7 @@ class MotisRepository
         return $station;
     }
 
-    public function getStationsFromDb(string|array $stationIds, TripSource $source): Collection {
+    public function getStationsFromDb(string|array $stationIds, DataProvider $source): Collection {
         if (is_string($stationIds)) {
             $stationIds = [$stationIds];
         }

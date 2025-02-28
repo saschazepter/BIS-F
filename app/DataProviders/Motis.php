@@ -6,10 +6,10 @@ use App\DataProviders\Repositories\MotisRepository;
 use App\Dto\Coordinate;
 use App\Dto\Internal\BahnTrip;
 use App\Dto\Internal\Departure;
+use App\Enum\DataProvider;
 use App\Enum\HafasTravelType;
 use App\Enum\MotisCategory;
 use App\Enum\TravelType;
-use App\Enum\TripSource;
 use App\Exceptions\HafasException;
 use App\Helpers\CacheKey;
 use App\Helpers\HCK;
@@ -32,11 +32,11 @@ class Motis extends Controller implements DataProviderInterface
 
     private GeoService      $geoService;
     private MotisRepository $motisRepository;
-    private TripSource      $source;
+    private DataProvider    $source;
 
     private const string API_URL = 'https://api.transitous.org/api/v1';
 
-    public function __construct(TripSource $source, ?MotisRepository $motisRepository = null, ?GeoService $geoService = null) {
+    public function __construct(DataProvider $source, ?MotisRepository $motisRepository = null, ?GeoService $geoService = null) {
         $this->source          = $source;
         $this->motisRepository = $motisRepository ?? new MotisRepository();
         $this->geoService      = $geoService ?? new GeoService();
@@ -138,8 +138,7 @@ class Motis extends Controller implements DataProviderInterface
     ): Collection {
         try {
             $station->load('stationIdentifiers');
-            // get transitous identifier
-            $transitousIdentifier = $station->stationIdentifiers->where('type', 'motis')->where('origin', 'transitous')->first();
+            $transitousIdentifier = $station->stationIdentifiers->where('type', 'motis')->where('origin', $this->source->value)->first();
             $params               = [
                 'stopId' => $transitousIdentifier->identifier,
                 'radius' => 100,
@@ -290,7 +289,7 @@ class Motis extends Controller implements DataProviderInterface
             $station = $stopoverCacheFromDB->where('stationIdentifiers', function($query) use ($rawStop) {
                 $query->where('identifier', $rawStop['stopId'])
                       ->where('type', 'motis')
-                      ->where('origin', 'transitous');
+                      ->where('origin', $this->source->value);
             })->first();
             $station = $station ?? $this->motisRepository->createStation($rawStop, $this->source);
 

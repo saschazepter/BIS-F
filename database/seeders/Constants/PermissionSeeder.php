@@ -20,7 +20,6 @@ class PermissionSeeder extends Seeder
         $roleClosedBeta             = Role::updateOrCreate(['name' => 'closed-beta']);
         $roleDisallowManualTrips    = Role::updateOrCreate(['name' => 'disallow-manual-trips']);
         $roleDeactivateAccountUsage = Role::updateOrCreate(['name' => 'deactivate-account-usage']);
-        Role::updateOrCreate(['name' => 'transitous']);
 
         //Create permissions
         $permissionViewBackend                    = Permission::updateOrCreate(['name' => 'view-backend']);
@@ -40,6 +39,7 @@ class PermissionSeeder extends Seeder
         $permissionDisallowStatusCreation         = Permission::updateOrCreate(['name' => 'disallow-status-creation']);
         $permissionDisallowStatusVisibilityChange = Permission::updateOrCreate(['name' => 'disallow-status-visibility-change']);
         $permissionDisallowSocialInteraction      = Permission::updateOrCreate(['name' => 'disallow-social-interaction']);
+        $permissionUseTransitous                  = Permission::updateOrCreate(['name' => 'use-transitous']);
 
         //Assign permissions to admin role
         $roleAdmin->givePermissionTo($permissionViewBackend);
@@ -74,6 +74,7 @@ class PermissionSeeder extends Seeder
 
         //Revoke permissions from closed-beta role
         $roleClosedBeta->revokePermissionTo($permissionCreateManualTrip); //now in open-beta
+        $roleClosedBeta->givePermissionTo($permissionUseTransitous);
 
         //Assign permissions to open-beta role
         $roleOpenBeta->givePermissionTo($permissionCreateManualTrip);
