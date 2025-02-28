@@ -145,6 +145,15 @@ class Motis extends Controller implements DataProviderInterface
         try {
             $station->load('stationIdentifiers');
             $transitousIdentifier = $station->stationIdentifiers->where('type', 'motis')->where('origin', $this->source->value)->first();
+            if ($transitousIdentifier === null) {
+                $station = $this->getNearbyStations($station->latitude, $station->longitude)->first();
+                $transitousIdentifier = $station->stationIdentifiers->where('type', 'motis')->where('origin', $this->source->value)->first();
+            }
+
+            if ($transitousIdentifier === null) {
+                throw new HafasException(__('messages.exception.generalHafas'));
+            }
+
             $params = [
                 'stopId' => $transitousIdentifier->identifier,
                 'radius' => 100,
