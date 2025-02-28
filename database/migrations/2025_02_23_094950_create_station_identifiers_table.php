@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('type');
             $table->string('origin')->nullable();
             $table->string('identifier');
+            $table->string('name')->nullable()->comment('Name of the station provided by the data source');
             $table->timestamps();
 
             $table->index(['type', 'origin', 'identifier']);

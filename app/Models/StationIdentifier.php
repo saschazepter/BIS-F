@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string  id
  * @property string  station_id
  * @property string  identifier
+ * @property ?string name
  * @property string  type
  * @property string  origin
  * @property Station station
@@ -18,7 +19,7 @@ class StationIdentifier extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['station_id', 'identifier', 'type', 'origin'];
+    protected $fillable = ['station_id', 'identifier', 'type', 'origin', 'name'];
     protected $visible  = [
         'station_id',
         'identifier',

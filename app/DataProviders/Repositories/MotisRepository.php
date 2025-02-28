@@ -4,6 +4,7 @@ namespace App\DataProviders\Repositories;
 
 use App\Dto\Coordinate;
 use App\Enum\DataProvider;
+use App\Helpers\Formatter;
 use App\Models\Station;
 use App\Services\GeoService;
 use Illuminate\Support\Collection;
@@ -27,24 +28,19 @@ class MotisRepository
                            ->where('longitude', '<=', $bbox->lowerRight->longitude)
                            ->get();
 
-        $stations = $stations->map(function($station) use ($rawStation) {
-            $stationName    = strtoupper($station->name);
-            $rawStationName = strtoupper($rawStation['name']);
+        $simplifiedRawStationName = Formatter::simplifyStationName($rawStation['name']);
+        $stations                 = $stations->map(function($station) use ($simplifiedRawStationName) {
+            $stationName = Formatter::simplifyStationName($station->name);
 
-            $replacements = ['HAUPTBAHNHOF' => 'HBF', 'BAHNHOF' => 'BF', 'H ' => '', ' ' => ''];
-            foreach ($replacements as $search => $replace) {
-                $stationName    = str_replace($search, $replace, $stationName);
-                $rawStationName = str_replace($search, $replace, $rawStationName);
-            }
-
-            similar_text($stationName, $rawStationName, $percent);
+            similar_text($stationName, $simplifiedRawStationName, $percent);
             $station->motisRepositoryTempPercent = $percent;
             return $station;
         });
+
         $stations = $stations->filter(function($station) {
-            return $station->motisRepositoryTempPercent > 80;
+            return $station->motisRepositoryTempPercent > 90;
         });
-        $stations = $stations->sortBy('motisRepositoryTempPercent', SORT_DESC);
+        $stations = $stations->sortBy('motisRepositoryTempPercent', SORT_ASC);
 
         if ($stations->isEmpty()) {
             $station = new Station([
@@ -60,7 +56,8 @@ class MotisRepository
         $station->stationIdentifiers()->create([
                                                    'type'       => self::TYPE,
                                                    'origin'     => $source->value,
-                                                   'identifier' => $rawStation['stopId']
+                                                   'identifier' => $rawStation['stopId'],
+                                                   'name'       => $rawStation['name']
                                                ]);
         return $station;
     }
