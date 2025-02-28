@@ -35,8 +35,8 @@ class GeoService
         $lonMax = $lon + $lonT;
 
         return new BoundingBox(
-            new Coordinate(round(rad2deg($latMax), $precision), round(rad2deg($lonMin), $precision)),
-            new Coordinate(round(rad2deg($latMin), $precision), round(rad2deg($lonMax), $precision))
+            new Coordinate(round(rad2deg($latMax), $precision), round(rad2deg($lonMax), $precision)),
+            new Coordinate(round(rad2deg($latMin), $precision), round(rad2deg($lonMin), $precision))
         );
     }
 

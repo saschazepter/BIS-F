@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\v1;
 
+use App\Dto\Coordinate;
 use App\Dto\Transport\Station as StationDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
@@ -21,6 +22,7 @@ use App\Models\Station;
 use App\Models\Status;
 use App\Models\User;
 use App\Notifications\YouHaveBeenCheckedIn;
+use App\Services\GeoService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -319,17 +321,10 @@ class TransportController extends Controller
                 results:   1
             )->first();
         } catch (HafasException) {
-            $upperLeft  = [
-                'latitude'  => $validated['latitude'] + 0.0015,
-                'longitude' => $validated['longitude'] + 0.0015
-            ];
-            $lowerRight = [
-                'latitude'  => $validated['latitude'] - 0.0015,
-                'longitude' => $validated['longitude'] - 0.0015
-            ];
+            $bbox = (new GeoService())->getBoundingBox(new Coordinate($validated['latitude'], $validated['longitude']), 100, 6);
 
-            $nearestStation = Station::whereBetween('latitude', [$lowerRight['latitude'], $upperLeft['latitude']])
-                                     ->whereBetween('longitude', [$lowerRight['longitude'], $upperLeft['longitude']])
+            $nearestStation = Station::whereBetween('latitude', [$bbox->lowerRight->latitude, $bbox->upperLeft->latitude])
+                                     ->whereBetween('longitude', [$bbox->lowerRight->longitude, $bbox->upperLeft->longitude])
                                      ->first();
         }
 
