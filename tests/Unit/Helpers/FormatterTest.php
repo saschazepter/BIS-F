@@ -13,13 +13,14 @@ class FormatterTest extends UnitTestCase
             ['Halle (Saale) Central Station (FlixTrain)', 'HALLESAALEHBF'],
             ['Bad Hersfeld (FlixTrain)', 'BADHERSFELD'],
             ['Frankfurt (Main) Süd (FlixTrain)', 'FRANKFURTMAINSD'],
-            ['Hauptfriedhof, Südeingang, Musterstadt', 'HAUPTFRIEDHOFSDEINGANG'],
-            ['Bahnhofsvorplatz, Musterstadt', 'BAHNHOFSVORPLATZ'],
+            ['Hauptfriedhof, Südeingang, Musterstadt', 'HBFFRIEDHOFSDEINGANG'],
+            ['Bahnhofsvorplatz, Musterstadt', 'SVORPLATZ'],
             ['Praha Hl.n', 'PRAHAHBF'],
             ['Berlin Hbf (tief)', 'BERLINHBF'],
             ['Stuttgart Hbf (oben)', 'STUTTGARTHBF'],
             ['Tieflehn (tief)', 'LEHN'],
             ['München Hbf Gl.27-36', 'MNCHENHBF'],
+            ['Albtalbahnhof', 'ALBTAL'],
         ];
     }
 

@@ -30,6 +30,9 @@ class Formatter
             'GLEIS',
             'PLATFORM',
             'GL',
+            'BAHNHOF',
+            'GARE',
+            'STATION',
         ];
         foreach ($removals as $prefix) {
             $stationName = str_replace($prefix, '', $stationName);
@@ -37,14 +40,11 @@ class Formatter
 
         // 5. Replace common words
         $replacements = [
-            'CENTRALSTATION'  => 'HBF',
-            'CENTRAL STATION' => 'HBF',
-            'GARECENTRALE'    => 'HBF',
-            'GARE CENTRALE'   => 'HBF',
-            'HAUPTBAHNHOF'    => 'HBF',
-            ' BAHNHOF'        => 'BF',
-            'HLAVN NDRA'      => 'HBF', // Hlavní nádraží without special characters
-            'HLN'             => 'HBF', // Hlavní nádraží abbreviation
+            'CENTRALE'   => 'HBF',
+            'CENTRAL'    => 'HBF',
+            'HAUPT'      => 'HBF', // Hauptbahnhof
+            'HLAVN NDRA' => 'HBF', // Hlavní nádraží without special characters
+            'HLN'        => 'HBF', // Hlavní nádraží abbreviation
         ];
         foreach ($replacements as $search => $replace) {
             $stationName = str_replace($search, $replace, $stationName);
