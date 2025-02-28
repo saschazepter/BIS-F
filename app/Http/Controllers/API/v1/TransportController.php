@@ -325,6 +325,8 @@ class TransportController extends Controller
 
             $nearestStation = Station::whereBetween('latitude', [$bbox->lowerRight->latitude, $bbox->upperLeft->latitude])
                                      ->whereBetween('longitude', [$bbox->lowerRight->longitude, $bbox->upperLeft->longitude])
+                                     ->whereNotNull('ibnr')
+                                     ->orderBy('id', 'asc')
                                      ->first();
         }
 
