@@ -23,7 +23,7 @@ class MotisRepository
     public function createStation(mixed $rawStation, DataProvider $source): Station
     {
         $coordinates = new Coordinate($rawStation['lat'], $rawStation['lon']);
-        $bbox = $this->geoService->getBoundingBox($coordinates, 500);
+        $bbox = $this->geoService->getBoundingBox($coordinates, 100);
 
         $stations = Station::whereBetween('latitude', [$bbox->lowerRight->latitude, $bbox->upperLeft->latitude])
             ->whereBetween('longitude', [$bbox->lowerRight->longitude, $bbox->upperLeft->longitude])
