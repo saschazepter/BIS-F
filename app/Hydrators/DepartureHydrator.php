@@ -20,7 +20,7 @@ class DepartureHydrator
             "tripId"              => $request->trip->tripId,
             "stop"                => [
                 "type"     => "stop",
-                "id"       => $request->station->ibnr,
+                "id"       => $request->station->id,
                 "name"     => $request->station->name,
                 "location" => [
                     "type"      => "location",

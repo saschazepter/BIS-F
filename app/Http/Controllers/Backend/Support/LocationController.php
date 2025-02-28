@@ -9,7 +9,7 @@ use App\Dto\LivePointDto;
 use App\Models\Status;
 use App\Models\Stopover;
 use App\Models\Trip;
-use App\Objects\LineSegment;
+use App\Services\GeoService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Collection;
@@ -18,29 +18,33 @@ use stdClass;
 
 class LocationController
 {
-    private Trip      $trip;
-    private ?Stopover $origin;
-    private ?Stopover $destination;
-    private ?Status   $status;
+    private Trip       $trip;
+    private ?Stopover  $origin;
+    private ?Stopover  $destination;
+    private ?Status    $status;
+    private GeoService $geoService;
 
     public function __construct(
-        Trip      $trip,
-        ?Stopover $origin = null,
-        ?Stopover $destination = null,
-        ?Status   $status = null
+        Trip        $trip,
+        ?Stopover   $origin = null,
+        ?Stopover   $destination = null,
+        ?Status     $status = null,
+        ?GeoService $geoService = null
     ) {
         $this->trip        = $trip;
         $this->origin      = $origin;
         $this->destination = $destination;
         $this->status      = $status;
+        $this->geoService  = $geoService ?? new GeoService();
     }
 
-    public static function forStatus(Status $status): LocationController {
+    public static function forStatus(Status $status, ?GeoService $geoService = null): LocationController {
         return new self(
             $status->checkin->trip,
             $status->checkin->originStopover,
             $status->checkin->destinationStopover,
-            $status
+            $status,
+            $geoService
         );
     }
 
@@ -97,9 +101,7 @@ class LocationController
             foreach ($polyline->features as $key => $point) {
                 $point = Coordinate::fromGeoJson($point);
                 if ($recentPoint !== null && $point !== null) {
-                    $lineSegment = new LineSegment($recentPoint, $point);
-
-                    $distance += $lineSegment->calculateDistance();
+                    $distance += $this->geoService->getDistance($recentPoint, $point);
                     if ($distance >= $meters) {
                         break;
                     }
@@ -107,7 +109,7 @@ class LocationController
                 $recentPoint = $point ?? $recentPoint;
             }
 
-            $currentPosition = $lineSegment->interpolatePoint($meters / $distance);
+            $currentPosition = $this->geoService->interpolatePoint($recentPoint, $point ?? $recentPoint, $meters / $distance);
 
             $polyline->features = array_slice($polyline->features, $key);
             array_unshift($polyline->features, Feature::fromCoordinate($currentPosition));
@@ -134,7 +136,7 @@ class LocationController
                 $lastStopover = $stopover;
                 continue;
             }
-            $fullDistance += (new LineSegment($lastStopover, $stopover))->calculateDistance();
+            $fullDistance += $this->geoService->getDistance($lastStopover, $stopover);
             $lastStopover = $stopover;
         }
         return $fullDistance;
@@ -291,13 +293,13 @@ class LocationController
                     continue;
                 }
 
-                $distance += (new LineSegment(
+                $distance += $this->geoService->getDistance(
                     new Coordinate(
                         $lastStopover->geometry->coordinates[1],
                         $lastStopover->geometry->coordinates[0]
                     ),
                     new Coordinate($stopover->geometry->coordinates[1], $stopover->geometry->coordinates[0])
-                ))->calculateDistance();
+                );
 
                 $lastStopover = $stopover;
             }
@@ -326,10 +328,10 @@ class LocationController
                 $lastStopover = $stopover;
                 continue;
             }
-            $distance     += (new LineSegment(
+            $distance     += $this->geoService->getDistance(
                 new Coordinate($lastStopover->station->latitude, $lastStopover->station->longitude),
                 new Coordinate($stopover->station->latitude, $stopover->station->longitude)
-            ))->calculateDistance();
+            );
             $lastStopover = $stopover;
         }
         return $distance;

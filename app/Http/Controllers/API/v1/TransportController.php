@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\API\v1;
 
-use App\DataProviders\Hafas;
+use App\Dto\Coordinate;
 use App\Dto\Transport\Station as StationDto;
 use App\Enum\Business;
 use App\Enum\StatusVisibility;
@@ -22,6 +22,7 @@ use App\Models\Station;
 use App\Models\Status;
 use App\Models\User;
 use App\Notifications\YouHaveBeenCheckedIn;
+use App\Services\GeoService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -259,7 +260,8 @@ class TransportController extends Controller
             return $this->sendResponse(data: new TripResource($trip));
         } catch (StationNotOnTripException) {
             return $this->sendError(__('controller.transport.not-in-stopovers', [], 'en'), 400);
-        } catch (HafasException) {
+        } catch (HafasException $exception) {
+            report($exception);
             return $this->sendError(__('messages.exception.hafas.502', [], 'en'), 503);
         }
     }
@@ -319,17 +321,10 @@ class TransportController extends Controller
                 results:   1
             )->first();
         } catch (HafasException) {
-            $upperLeft  = [
-                'latitude'  => $validated['latitude'] + 0.0015,
-                'longitude' => $validated['longitude'] + 0.0015
-            ];
-            $lowerRight = [
-                'latitude'  => $validated['latitude'] - 0.0015,
-                'longitude' => $validated['longitude'] - 0.0015
-            ];
+            $bbox = (new GeoService())->getBoundingBox(new Coordinate($validated['latitude'], $validated['longitude']), 100, 6);
 
-            $nearestStation = Station::whereBetween('latitude', [$lowerRight['latitude'], $upperLeft['latitude']])
-                                     ->whereBetween('longitude', [$lowerRight['longitude'], $upperLeft['longitude']])
+            $nearestStation = Station::whereBetween('latitude', [$bbox->lowerRight->latitude, $bbox->upperLeft->latitude])
+                                     ->whereBetween('longitude', [$bbox->lowerRight->longitude, $bbox->upperLeft->longitude])
                                      ->whereNotNull('ibnr')
                                      ->orderBy('id', 'asc')
                                      ->first();
@@ -528,7 +523,7 @@ class TransportController extends Controller
      */
     public function getTrainStationAutocomplete(string $query): JsonResponse {
         try {
-            $trainAutocompleteResponse = (new TransportBackend(Hafas::class))->getTrainStationAutocomplete($query);
+            $trainAutocompleteResponse = (new TransportBackend(Auth::user()))->getTrainStationAutocomplete($query);
             return $this->sendResponse($trainAutocompleteResponse);
         } catch (HafasException $e) {
             // check if app is in debug mode

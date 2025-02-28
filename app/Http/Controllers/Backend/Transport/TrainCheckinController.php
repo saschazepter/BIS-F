@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Backend\Transport;
 
+use App\Dto\Coordinate;
 use App\Dto\Internal\CheckInRequestDto;
 use App\Dto\Internal\CheckinSuccessDto;
 use App\Enum\PointReason;
@@ -23,6 +24,7 @@ use App\Models\Status;
 use App\Models\Stopover;
 use App\Models\Trip;
 use App\Notifications\UserJoinedConnection;
+use App\Objects\LineSegment;
 use App\Repositories\CheckinHydratorRepository;
 use Carbon\Carbon;
 use Exception;
@@ -238,9 +240,28 @@ abstract class TrainCheckinController extends Controller
         $hafasTrip = (new CheckinHydratorRepository())->getHafasTrip($tripId, $lineName);
         $hafasTrip->loadMissing(['stopovers', 'originStation', 'destinationStation']);
 
-        $originStopover = $hafasTrip->stopovers->filter(function(Stopover $stopover) use ($startId) {
-            return $stopover->train_station_id === $startId || $stopover->station->ibnr === $startId;
-        })->first();
+        if ($hafasTrip->source->identifiableById()) {
+            $originStopover = $hafasTrip->stopovers->filter(function(Stopover $stopover) use ($startId) {
+                return $stopover->train_station_id === $startId || $stopover->station->ibnr === $startId;
+            })->first();
+        } else {
+            $start = Station::find($startId);
+
+            $originStopover = $hafasTrip->stopovers->filter(function(Stopover $stopover) use ($start) {
+                if ($start->id === $stopover->train_station_id) {
+                    return true;
+                }
+
+                // are stations less than 50m apart?
+                $distance = (new LineSegment(
+                    new Coordinate($start->latitude, $start->longitude),
+                    new Coordinate($stopover->station->latitude, $stopover->station->longitude)
+                ))->calculateDistance();
+
+                return $distance < 50;
+            })->first();
+        }
+
 
         if ($originStopover === null) {
             throw new StationNotOnTripException();

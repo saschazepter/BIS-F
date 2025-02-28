@@ -2,11 +2,15 @@
 
 namespace App\DataProviders;
 
+use App\Enum\DataProvider;
 use App\Exceptions\UnknownDataProvider;
 
 class DataProviderBuilder
 {
-    public function build(?bool $cache = null): DataProviderInterface {
+    public function build(?bool $cache = null, $user = null): DataProviderInterface {
+        if ($user?->data_provider === DataProvider::TRANSITOUS && $user?->hasPermissionTo('use-transitous')) {
+            return new Motis(DataProvider::TRANSITOUS);
+        }
         $dp = match (config('trwl.data_provider')) {
             'hafas' => new Hafas(),
             'bahn'  => new Bahn(),

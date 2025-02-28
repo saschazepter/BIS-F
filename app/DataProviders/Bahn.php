@@ -221,6 +221,10 @@ class Bahn extends Controller implements DataProviderInterface
                     'lineName' => $tripLineName
                 ],         now()->addMinutes(30));
 
+                if ($departureStation === null) {
+                    continue;
+                }
+
                 $departure = new Departure(
                     station:          $departureStation,
                     plannedDeparture: Carbon::parse($rawDeparture['zeit'], $timezone),
