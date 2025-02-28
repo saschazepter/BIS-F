@@ -4738,7 +4738,8 @@
                         "title": "ibnr",
                         "description": "IBNR of the station",
                         "type": "integer",
-                        "example": "8000191"
+                        "example": "8000191",
+                        "nullable": true
                     },
                     "rilIdentifier": {
                         "title": "rilIdentifier",
@@ -4763,6 +4764,16 @@
                     2
                 ],
                 "example": 0
+            },
+            "DataProvider": {
+                "title": "DataProvider",
+                "description": "What type of data provider did the user specify? (users need to be in closed-beta for this to take effect)",
+                "type": "string",
+                "enum": [
+                    "default",
+                    "transitous"
+                ],
+                "example": "cargo"
             },
             "HafasTravelType": {
                 "title": "category",
