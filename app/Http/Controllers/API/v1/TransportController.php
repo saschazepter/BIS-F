@@ -14,12 +14,14 @@ use App\Exceptions\StationNotOnTripException;
 use App\Http\Controllers\Backend\Transport\StationController;
 use App\Http\Controllers\Backend\Transport\TrainCheckinController;
 use App\Http\Controllers\TransportController as TransportBackend;
+use App\Http\Requests\GetTripRequest;
 use App\Http\Resources\CheckinSuccessResource;
 use App\Http\Resources\StationResource;
 use App\Http\Resources\TripResource;
 use App\Hydrators\CheckinRequestHydrator;
 use App\Models\Station;
 use App\Models\Status;
+use App\Models\Trip;
 use App\Models\User;
 use App\Notifications\YouHaveBeenCheckedIn;
 use App\Services\GeoService;
@@ -244,13 +246,13 @@ class TransportController extends Controller
      *       }
      *     )
      */
-    public function getTrip(Request $request): JsonResponse {
-        $validated = $request->validate([
-                                            'hafasTripId' => ['required', 'string'],
-                                            'lineName'    => ['required', 'string'],
-                                            'start'       => ['required', 'numeric', 'gt:0'],
-                                        ]);
+    public function getTrip(GetTripRequest $request): JsonResponse {
+        if ($request->has('tripId')) {
+            $trip = Trip::where('id', $request->get('tripId'))->firstOrFail();
+            return $this->sendResponse(data: new TripResource($trip));
+        }
 
+        $validated = $request->validated();
         try {
             $trip = TrainCheckinController::getHafasTrip(
                 $validated['hafasTripId'],

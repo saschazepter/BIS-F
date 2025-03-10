@@ -3,10 +3,12 @@ import {DateTime} from "luxon";
 import {trans} from "laravel-vue-i18n";
 import StationInput from "./StationInput.vue";
 import TripCreationMap from "./TripCreationMap.vue";
+import axios from "axios";
+import FullScreenModal from "../FullScreenModal.vue";
 
 export default {
   name: "TripCreationForm",
-  components: {TripCreationMap, StationInput},
+  components: {FullScreenModal, TripCreationMap, StationInput},
   mounted() {
     this.initForm();
     this.loadOperators();
@@ -53,7 +55,9 @@ export default {
       showDisallowed: false,
       validation: {
         times: null
-      }
+      },
+      cloneStartTime: "",
+      tripId: "",
     };
   },
   methods: {
@@ -192,8 +196,12 @@ export default {
     getOriginFromQuery() {
       const urlParams = new URLSearchParams(window.location.search);
       const stationId = urlParams.get("from");
+      const tripId = urlParams.get("tripId");
 
-      if (stationId) {
+      if (tripId) {
+        this.tripId = tripId;
+        this.$refs.timeModal.show()
+      } else if (stationId) {
         fetch(`/api/v1/stations/${stationId}`, {
           method: "GET",
           headers: {
@@ -214,6 +222,47 @@ export default {
               console.error(error);
             });
       }
+    },
+    getDataFromTripId() {
+      axios.get(`/api/v1/trains/trip?tripId=${this.tripId}`)
+          .then((response) => {
+            const trip = response.data.data;
+            const origin = trip.stopovers.shift();
+            const destination = trip.stopovers.pop();
+            const newTime = DateTime.fromISO(this.cloneStartTime);
+            const baseTime = DateTime.fromISO(origin.departurePlanned);
+            const diff = newTime.diff(baseTime).toObject();
+
+            this.$refs.originInput.setStation(origin);
+            this.form.originDeparturePlanned = DateTime.fromISO(origin.departurePlanned).plus(diff).toISO();
+            this.$refs.originInput.setTimeB(this.form.originDeparturePlanned);
+            this.$refs.destinationInput.setStation(destination);
+            this.form.destinationArrivalPlanned = DateTime.fromISO(destination.arrivalPlanned).plus(diff).toISO();
+            this.$refs.destinationInput.setTimeB(this.form.destinationArrivalPlanned);
+            this.trainTypeInput = trip.lineName;
+            this.journeyNumberInput = trip.journeyNumber;
+            this.selectedCategory = this.categories.find((category) => category.value === trip.category);
+            this.selectedOperator = this.operators.find((operator) => operator.id === trip.operatorId);
+
+            this.stopovers = trip.stopovers.map((stopover) => {
+              if (stopover.departurePlanned) {
+                stopover.departurePlanned = DateTime.fromISO(stopover.departurePlanned).plus(diff).toISO();
+              }
+              if (stopover.arrivalPlanned) {
+                stopover.arrivalPlanned = DateTime.fromISO(stopover.arrivalPlanned).plus(diff).toISO();
+              }
+              return {
+                station: {
+                  name: stopover.name,
+                  id: stopover.id,
+                  latitude: stopover.latitude,
+                  longitude: stopover.longitude,
+                },
+                departurePlanned: stopover.departurePlanned,
+                arrivalPlanned: stopover.arrivalPlanned,
+              };
+            });
+          });
     },
     onLineInput() {
       this.checkDisallowed()
@@ -249,12 +298,32 @@ export default {
     onChangeCat(event) {
       console.log(event);
       console.log(this.selectedCategory)
-    }
+    },
+    setStartTime() {
+      this.getDataFromTripId();
+      this.$refs.timeModal.hide();
+    },
   }
 }
 </script>
 
 <template>
+  <FullScreenModal
+      ref="timeModal"
+      title="Station suchen"
+      @close=""
+  >
+    <template #body>
+      <h1>Was soll die Startzeit sein?</h1>
+      <input
+          v-model="cloneStartTime"
+          class="form-control mobile-input-fs-16"
+          type="datetime-local"
+          ref="timeFieldA"
+      >
+      <button @click="setStartTime">Setze Startzeit</button>
+    </template>
+  </FullScreenModal>
   <div class="row mt-n4 mb-4 border-bottom d-block d-md-none">
     <ul class="nav nav-tabs" role="tablist">
       <li class="nav-item" role="presentation">
@@ -384,6 +453,7 @@ export default {
           <div class="d-flex align-items-center w-100">
             <div class="flex-grow-1 d-flex">
               <StationInput
+                  :stopover
                   :placeholder="trans('trip_creation.form.stopover')"
                   v-on:update:station="setStopoverStation($event, key)"
                   v-on:update:timeFieldB="setStopoverDeparture($event, key)"
@@ -401,6 +471,7 @@ export default {
         </div>
 
         <StationInput
+            ref="destinationInput"
             :placeholder="trans('trip_creation.form.destination')"
             :arrival="true"
             :departure="false"

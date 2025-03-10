@@ -19,13 +19,19 @@ export default {
     departure: {
       type: Boolean,
       default: true
+    },
+    stopover: {
+      type: Object,
+      default: null,
     }
   },
   emits: ['update:station', 'update:timeFieldA', 'update:timeFieldB', 'delete'],
   data() {
     return {
       timeFieldA: "--:--",
+      timeFieldAFull: "",
       timeFieldB: "--:--",
+      timeFieldBFull: "",
       stationInput: "",
       sidebarStationInput: "",
       loading: false,
@@ -86,9 +92,11 @@ export default {
         }
       }, 100);
     },
-    setStation(item) {
+    setStation(item, event = true) {
       this.stationInput = item.name;
-      this.$emit('update:station', item);
+      if (event) {
+        this.$emit('update:station', item);
+      }
       this.sidebarStationInput = item.name;
       this.autocompleteList = [];
       this.pauseAutoComplete = true;
@@ -126,7 +134,10 @@ export default {
           this.loading = false;
         });
       });
-    }
+    },
+    setTimeB(time) {
+      this.timeFieldB = this.formatTime(time);
+    },
   },
   mounted() {
     // I hate it, it's extremely ugly, but it works
@@ -134,6 +145,11 @@ export default {
     // There is a plugin for this, but it's not worth it with only one component
     this.id = Math.random().toString().substring(2);
     this.getRecent();
+    if (this.stopover) {
+      this.setStation(this.stopover.station);
+      this.timeFieldA = this.formatTime(this.stopover.arrivalPlanned);
+      this.timeFieldB = this.formatTime(this.stopover.departurePlanned);
+    }
   },
   watch: {
     stationInput: _.debounce(function () {
@@ -164,7 +180,7 @@ export default {
       <ul class="list-group list-group-light list-group-small mb-2">
         <AutocompleteListEntry
             v-for="item in recent"
-            v-show="stationInput.length <= 0"
+            v-show="stationInput && stationInput.length <= 0"
             :station="item"
             @click="setStation(item)"
         />
@@ -186,10 +202,10 @@ export default {
               :id="timeFieldAId"
               :aria-label="timeFieldALabel"
               :placeholder="timeFieldALabel"
+              v-model="timeFieldAFull"
               class="form-control mobile-input-fs-16"
               type="datetime-local"
               ref="timeFieldA"
-              @input="timeFieldAChanged"
           >
         </div>
       </div>
@@ -203,10 +219,10 @@ export default {
               :id="timeFieldBId"
               :aria-label="timeFieldBLabel"
               :placeholder="timeFieldBLabel"
+              v-model="timeFieldBFull"
               class="form-control mobile-input-fs-16"
               type="datetime-local"
               ref="timeFieldB"
-              @input="timeFieldBChanged"
           >
         </div>
       </div>

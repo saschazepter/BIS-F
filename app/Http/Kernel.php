@@ -46,7 +46,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            'throttle:60,1',
+            'throttle:90,1',
             JsonMiddleware::class,
             'bindings',
             \App\Http\Middleware\Language::class,

@@ -285,6 +285,17 @@
                                         {{__('delete')}}
                                     </button>
                                 </li>
+                                @if(auth()->user()->hasRole('open-beta'))
+                                    <li>
+                                        <a href="{{ route('trip.create') . '?tripId=' . $status->checkin->trip->id }}"
+                                           class="dropdown-item" type="button">
+                                            <div class="dropdown-icon-suspense">
+                                                <i class="fas fa-copy" aria-hidden="true"></i>
+                                            </div>
+                                            {{__('status.copy-manual-trip')}}
+                                        </a>
+                                    </li>
+                                @endif
                             @else
                                 <li>
                                     <a href="{{ route('stationboard', [

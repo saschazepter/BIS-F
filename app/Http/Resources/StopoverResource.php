@@ -13,6 +13,8 @@ use OpenApi\Annotations as OA;
  *     @OA\Property(property="name", type="string", example="Karlsruhe Hbf", description="name of the station"),
  *     @OA\Property(property="rilIdentifier", type="string", example="RK", nullable=true, description="Identifier specified in 'Richtline 100' of the Deutsche Bahn"),
  *     @OA\Property(property="evaIdentifier", type="string", example="8000191", nullable=true, description="IBNR identifier of Deutsche Bahn"),
+ *     @OA\Property(property="latitude", type="number", format="float", example=49.009, description="latitude of the station"),
+ *     @OA\Property(property="longitude", type="number", format="float", example=8.403, description="longitude of the station"),
  *     @OA\Property(property="arrival", type="string", format="date-time", example="2022-07-17T13:37:00+02:00", nullable=true, description="currently known arrival time. Equal to arrivalReal if known. Else equal to arrivalPlanned."),
  *     @OA\Property(property="arrivalPlanned", type="string", format="date-time", example="2022-07-17T13:37:00+02:00", nullable=true, description="planned arrival according to timetable records"),
  *     @OA\Property(property="arrivalReal", type="string", format="date-time", example="2022-07-17T13:37:00+02:00", nullable=true, description="real arrival according to live data"),
@@ -39,6 +41,8 @@ class StopoverResource extends JsonResource
             'name'                     => $this->station->name,
             'rilIdentifier'            => $this->station->rilIdentifier ?? null,
             'evaIdentifier'            => $this->station->ibnr ?? null,
+            'latitude'                 => $this->station->latitude,
+            'longitude'                => $this->station->longitude,
             'arrival'                  => $this->arrival?->toIso8601String(), //TODO: not necessary if planned and real are available
             'arrivalPlanned'           => $this->arrival_planned?->toIso8601String(),
             'arrivalReal'              => $this->arrival_real?->toIso8601String(),
