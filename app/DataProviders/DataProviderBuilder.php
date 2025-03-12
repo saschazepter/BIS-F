@@ -8,8 +8,8 @@ use App\Exceptions\UnknownDataProvider;
 class DataProviderBuilder
 {
     public function build(?bool $cache = null, $user = null): DataProviderInterface {
-        if ($user?->data_provider === DataProvider::TRANSITOUS && $user?->hasPermissionTo('use-transitous')) {
-            return new Motis(DataProvider::TRANSITOUS);
+        if ($user?->data_provider instanceof DataProvider && $user?->data_provider->isMotis() && $user?->hasPermissionTo('use-transitous')) {
+            return new Motis($user?->data_provider);
         }
         $dp = match (config('trwl.data_provider')) {
             'hafas' => new Hafas(),

@@ -100,6 +100,10 @@
                                                 @if(auth()->user()->data_provider == App\Enum\DataProvider::TRANSITOUS) selected @endif>
                                             {{__('data-providers.transitous')}}
                                         </option>
+                                        <option value="{{ App\Enum\DataProvider::FAHRPLANBUERO->value }}"
+                                                @if(auth()->user()->data_provider == App\Enum\DataProvider::FAHRPLANBUERO) selected @endif>
+                                            {{__('data-providers.fahrplanbuero')}}
+                                        </option>
                                     </select>
 
                                     @error('email')

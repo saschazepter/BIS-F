@@ -2,6 +2,7 @@
 
 namespace App\DataProviders;
 
+use App\DataProviders\Repositories\DataProviderRepository;
 use App\DataProviders\Repositories\MotisRepository;
 use App\Dto\Coordinate;
 use App\Dto\Internal\BahnTrip;
@@ -34,13 +35,15 @@ class Motis extends Controller implements DataProviderInterface
     private MotisRepository $motisRepository;
     private DataProvider    $source;
 
-    #private const string API_URL = 'https://api.transitous.org/api/v1';
-    private const string API_URL = 'http://localhost:8081/api/motis';
+    private static string $apiUrl;
 
-    public function __construct(DataProvider $source, ?MotisRepository $motisRepository = null, ?GeoService $geoService = null) {
-        $this->source          = $source;
-        $this->motisRepository = $motisRepository ?? new MotisRepository();
-        $this->geoService      = $geoService ?? new GeoService();
+    public function __construct(DataProvider $source, ?MotisRepository $motisRepository = null, ?GeoService $geoService = null, ?DataProviderRepository $dataProviderRepository = null) {
+        $this->source           = $source;
+        $this->motisRepository  = $motisRepository ?? new MotisRepository();
+        $this->geoService       = $geoService ?? new GeoService();
+        $dataProviderRepository = $dataProviderRepository ?? new DataProviderRepository();
+
+        self::$apiUrl = $dataProviderRepository->getUrlFromDataProvider($source);
     }
 
     public function getStationByRilIdentifier(string $rilIdentifier): ?Station {
@@ -69,7 +72,7 @@ class Motis extends Controller implements DataProviderInterface
      */
     public function getStations(string $query, int $results = 10): Collection {
         try {
-            $url      = sprintf(self::API_URL . "/geocode?text=%s&limit=%d", urlencode($query), $results);
+            $url      = sprintf(self::$apiUrl . "/geocode?text=%s&limit=%d", urlencode($query), $results);
             $response = Http::get($url);
 
             if (!$response->ok()) {
@@ -96,7 +99,7 @@ class Motis extends Controller implements DataProviderInterface
         $center = new Coordinate($latitude, $longitude);
         $bbox   = $this->geoService->getBoundingBox($center, 100);
 
-        $response = Http::get(self::API_URL . '/map/stops', [
+        $response = Http::get(self::$apiUrl . '/map/stops', [
             'min' => (string) $bbox->lowerRight,
             'max' => (string) $bbox->upperLeft,
         ]);
@@ -138,6 +141,7 @@ class Motis extends Controller implements DataProviderInterface
         bool        $localtime = false
     ): Collection {
         try {
+            // get station identifier needed for API request
             $station->load('stationIdentifiers');
             $transitousIdentifier = $station->stationIdentifiers->where('type', 'motis')->where('origin', $this->source->value)->first();
             if ($transitousIdentifier === null) {
@@ -149,13 +153,13 @@ class Motis extends Controller implements DataProviderInterface
                 throw new HafasException(__('messages.exception.generalHafas'));
             }
 
-            $params = [
+            // prepare request
+            $params         = [
                 'stopId' => $transitousIdentifier->identifier,
                 'radius' => 100,
                 'time'   => $when->toIso8601String(),
                 'n'      => 50
             ];
-
             $filterCategory = MotisCategory::fromTravelType($type);
             if (isset($filterCategory)) {
                 foreach ($filterCategory as $category) {
@@ -163,8 +167,9 @@ class Motis extends Controller implements DataProviderInterface
                 }
             }
 
-            $response = Http::get(self::API_URL . '/stoptimes', $params);
+            $response = Http::get(self::$apiUrl . '/stoptimes', $params);
 
+            // check response
             if (!$response->ok()) {
                 CacheKey::increment(HCK::DEPARTURES_NOT_OK);
                 Log::error('Unknown HAFAS Error (fetchDepartures)', [
@@ -174,50 +179,10 @@ class Motis extends Controller implements DataProviderInterface
                 throw new HafasException(__('messages.exception.generalHafas'));
             }
 
-            $departures = collect();
-            $entries    = $response->json('stopTimes');
+            // map response
+            $entries = $response->json('stopTimes');
             CacheKey::increment(HCK::DEPARTURES_SUCCESS);
-            foreach ($entries as $rawDeparture) {
-                //trip
-                $tripId              = $rawDeparture['tripId'];
-                $rawDepartureStation = $rawDeparture['place'];
-                $tripLineName        = $rawDeparture['routeShortName'] ?? '';
-                $category            = MotisCategory::tryFrom($rawDeparture['mode']);
-                $hafasTravelType     = $category->getHTT()->value;
-
-                $platformPlanned = $rawDepartureStation['scheduledTrack'] ?? '';
-                $platformReal    = $rawDepartureStation['track'] ?? $platformPlanned;
-                try {
-                    $departureStation = $this->motisRepository->getStationsByIdentifiers([$rawDepartureStation['stopId']], $this->source)->first();
-                    if ($departureStation === null) {
-                        // if station does not exist, request it from API
-                        $departureStation = $this->motisRepository->createStation($rawDepartureStation, $this->source);
-                    }
-                } catch (Exception $exception) {
-                    Log::error($exception->getMessage());
-                    $departureStation = $station;
-                }
-
-                $departure = new Departure(
-                    station:          $departureStation,
-                    plannedDeparture: isset($rawDeparture['scheduledDeparture']) ? Carbon::parse($rawDepartureStation['scheduledDeparture']) : null,
-                    realDeparture:    isset($rawDepartureStation['departure']) ? Carbon::parse($rawDepartureStation['departure']) : null,
-                    trip:             new BahnTrip(
-                                          tripId:        $tripId,
-                                          direction:     $rawDeparture['headsign'],
-                                          lineName:      $tripLineName,
-                                          number:        $tripId,
-                                          category:      $hafasTravelType,
-                                          journeyNumber: $tripId,
-                                      ),
-                    plannedPlatform:  $platformPlanned,
-                    realPlatform:     $platformReal,
-                    plannedArrival:   isset($rawDepartureStation['scheduledArrival']) ? Carbon::parse($rawDepartureStation['scheduledArrival']) : null,
-                    realArrival:      isset($rawDepartureStation['arrival']) ? Carbon::parse($rawDepartureStation['arrival']) : null,
-                );
-
-                $departures->push($departure);
-            }
+            $departures = $this->mapDepartures($entries, $station);
 
             return DepartureHydrator::map($departures);
 
@@ -235,7 +200,7 @@ class Motis extends Controller implements DataProviderInterface
      */
     private function fetchJourney(string $tripId): array|null {
         try {
-            $response = Http::get(self::API_URL . "/trip", ['tripId' => $tripId,]);
+            $response = Http::get(self::$apiUrl . "/trip", ['tripId' => $tripId,]);
 
             if ($response->ok()) {
                 CacheKey::increment(HCK::TRIPS_SUCCESS);
@@ -373,5 +338,52 @@ class Motis extends Controller implements DataProviderInterface
             $stations->push($station);
         }
         return $stations;
+    }
+
+    private function mapDepartures(mixed $entries, Station|\Closure|null $station): Exception {
+        $departures = collect();
+        foreach ($entries as $rawDeparture) {
+            //trip
+            $tripId              = $rawDeparture['tripId'];
+            $rawDepartureStation = $rawDeparture['place'];
+            $tripLineName        = $rawDeparture['routeShortName'] ?? '';
+            $category            = MotisCategory::tryFrom($rawDeparture['mode']);
+            $hafasTravelType     = $category->getHTT()->value;
+
+            $platformPlanned = $rawDepartureStation['scheduledTrack'] ?? '';
+            $platformReal    = $rawDepartureStation['track'] ?? $platformPlanned;
+            try {
+                $departureStation = $this->motisRepository->getStationsByIdentifiers([$rawDepartureStation['stopId']], $this->source)->first();
+                if ($departureStation === null) {
+                    // if station does not exist, request it from API
+                    $departureStation = $this->motisRepository->createStation($rawDepartureStation, $this->source);
+                }
+            } catch (Exception $exception) {
+                Log::error($exception->getMessage());
+                $departureStation = $station;
+            }
+
+            $departure = new Departure(
+                station:          $departureStation,
+                plannedDeparture: isset($rawDeparture['scheduledDeparture']) ? Carbon::parse($rawDepartureStation['scheduledDeparture']) : null,
+                realDeparture:    isset($rawDepartureStation['departure']) ? Carbon::parse($rawDepartureStation['departure']) : null,
+                trip:             new BahnTrip(
+                                      tripId:        $tripId,
+                                      direction:     $rawDeparture['headsign'],
+                                      lineName:      $tripLineName,
+                                      number:        $tripId,
+                                      category:      $hafasTravelType,
+                                      journeyNumber: $tripId,
+                                  ),
+                plannedPlatform:  $platformPlanned,
+                realPlatform:     $platformReal,
+                plannedArrival:   isset($rawDepartureStation['scheduledArrival']) ? Carbon::parse($rawDepartureStation['scheduledArrival']) : null,
+                realArrival:      isset($rawDepartureStation['arrival']) ? Carbon::parse($rawDepartureStation['arrival']) : null,
+            );
+
+            $departures->push($departure);
+        }
+
+        return $departures;
     }
 }

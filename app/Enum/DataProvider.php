@@ -14,6 +14,14 @@ namespace App\Enum;
  */
 enum DataProvider: string
 {
-    case DEFAULT = 'default';
-    case TRANSITOUS = 'transitous';
+    case DEFAULT       = 'default';
+    case TRANSITOUS    = 'transitous';
+    case FAHRPLANBUERO = 'fahrplanbuero';
+
+    public function isMotis(): bool {
+        return match ($this) {
+            self::TRANSITOUS, self::FAHRPLANBUERO => true,
+            default                               => false,
+        };
+    }
 }
