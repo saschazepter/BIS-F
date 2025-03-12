@@ -16,6 +16,16 @@ class DepartureHydrator
     }
 
     public static function mapSingle(Departure $request) {
+        $departure   = $request->realDeparture ?? $request->plannedDeparture;
+        $arrival     = $request->realArrival ?? $request->plannedArrival;
+        $when        = $departure?->toIso8601String() ?? $arrival?->toIso8601String();
+        $plannedWhen = $request->plannedDeparture?->toIso8601String() ?? $request->plannedArrival?->toIso8601String() ?? $when;
+
+        if (!$plannedWhen) {
+            $plannedWhen = $when;
+            $when        = null;
+        }
+
         $content = [
             "tripId"              => $request->trip->tripId,
             "stop"                => [
@@ -41,8 +51,8 @@ class DepartureHydrator
                     "taxi"            => true, //TODO
                 ]
             ],
-            "when"                => $request->realDeparture?->toIso8601String(),
-            "plannedWhen"         => $request->plannedDeparture->toIso8601String(),
+            "when"                => $when,
+            "plannedWhen"         => $plannedWhen,
             "delay"               => $request->getDelay(), //TODO: make it deprecated
             "platform"            => $request->realPlatform,
             "plannedPlatform"     => $request->plannedPlatform,
