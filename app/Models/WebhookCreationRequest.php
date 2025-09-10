@@ -15,7 +15,7 @@ class WebhookCreationRequest extends Model
     protected $casts      = [
         'id'              => 'string',
         'user_id'         => 'integer',
-        'oauth_client_id' => 'integer',
+        'oauth_client_id' => 'string', // numeric (legacy) or uuid
         'revoked'         => 'boolean',
         'expires_at'      => 'datetime',
         'events'          => 'string',
