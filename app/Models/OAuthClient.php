@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Passport\Client as PassportClient;
 
@@ -34,7 +35,7 @@ class OAuthClient extends PassportClient
         'secret',
     ];
 
-    public static function newFactory() {
+    public static function newFactory(): Factory {
         return parent::newFactory();
     }
 
