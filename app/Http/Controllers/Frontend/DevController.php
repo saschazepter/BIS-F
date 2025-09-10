@@ -13,12 +13,12 @@ use Laravel\Passport\ClientRepository;
 class DevController extends Controller
 {
     public function renderAppList(): View {
-        $clients = new ClientRepository();
-
-        $userId = auth()->user()->getAuthIdentifier();
+        $userId  = auth()->user()->getAuthIdentifier();
+        $clients = app(OAuthClientRepository::class)
+            ->activeForUser($userId);
 
         return view('dev.apps', [
-            'apps' => $clients->activeForUser($userId)
+            'apps' => $clients
         ]);
     }
 

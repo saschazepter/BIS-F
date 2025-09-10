@@ -4,9 +4,9 @@ namespace App\Repositories;
 
 use App\Models\OAuthClient;
 use App\Models\Webhook;
-use Laravel\Passport\Passport;
 use Illuminate\Support\Str;
-use Laravel\Passport\Token;
+use Laravel\Passport\Client;
+use Laravel\Passport\Passport;
 
 // Based on Passports's code:
 // https://github.com/laravel/passport/blob/d8cc34766635da552a9ddff80248c5505f19bd04/src/ClientRepository.php#L140-L156
@@ -21,25 +21,25 @@ class OAuthClientRepository
         string      $redirect,
         string|null $provider = null,
         bool        $personalAccess = false,
-        bool $password = false,
-        bool $confidential = true,
+        bool        $password = false,
+        bool        $confidential = true,
         string|null $privacyPolicyUrl = null,
-        bool $webhooksEnabled = false,
+        bool        $webhooksEnabled = false,
         string|null $authorizedWebhookUrl = null,
     ): OAuthClient {
         $client = Passport::client()->forceFill([
-            'user_id' => $userId,
-            'name' => $name,
-            'secret' => ($confidential || $personalAccess) ? Str::random(40) : null,
-            'provider' => $provider,
-            'redirect' => $redirect,
-            'personal_access_client' => $personalAccess,
-            'password_client' => $password,
-            'revoked' => false,
-            'privacy_policy_url' => $privacyPolicyUrl,
-            'webhooks_enabled' => $webhooksEnabled,
-            'authorized_webhook_url' => $authorizedWebhookUrl,
-        ]);
+                                                    'user_id'                => $userId,
+                                                    'name'                   => $name,
+                                                    'secret'                 => ($confidential || $personalAccess) ? Str::random(40) : null,
+                                                    'provider'               => $provider,
+                                                    'redirect'               => $redirect,
+                                                    'personal_access_client' => $personalAccess,
+                                                    'password_client'        => $password,
+                                                    'revoked'                => false,
+                                                    'privacy_policy_url'     => $privacyPolicyUrl,
+                                                    'webhooks_enabled'       => $webhooksEnabled,
+                                                    'authorized_webhook_url' => $authorizedWebhookUrl,
+                                                ]);
 
         $client->save();
 
@@ -51,12 +51,12 @@ class OAuthClientRepository
      */
     public function update(
         OAuthClient $client,
-        string $name,
-        string $redirect,
+        string      $name,
+        string      $redirect,
         string|null $privacyPolicyUrl,
-        bool $webhooksEnabled,
+        bool        $webhooksEnabled,
         string|null $authorizedWebhookUrl,
-        bool $confidential = true,
+        bool        $confidential = true,
     ): OAuthClient {
         $secret = $client->secret;
         if ($client->isConfidential() != $confidential) {
@@ -68,13 +68,13 @@ class OAuthClientRepository
         }
 
         $client->forceFill([
-            'name' => $name,
-            'redirect' => $redirect,
-            'privacy_policy_url' => $privacyPolicyUrl,
-            'webhooks_enabled' => $webhooksEnabled,
-            'authorized_webhook_url' => $authorizedWebhookUrl,
-            'secret' => $secret,
-        ])->save();
+                               'name'                   => $name,
+                               'redirect'               => $redirect,
+                               'privacy_policy_url'     => $privacyPolicyUrl,
+                               'webhooks_enabled'       => $webhooksEnabled,
+                               'authorized_webhook_url' => $authorizedWebhookUrl,
+                               'secret'                 => $secret,
+                           ])->save();
 
         return $client;
     }
@@ -97,5 +97,12 @@ class OAuthClientRepository
     public function hasWebhooks(int $id): bool {
         $webhooks = (new Webhook)->where('oauth_client_id', $id)->get();
         return $webhooks->count() > 0;
+    }
+
+    public function activeForUser(int|string $userId) {
+        return Client::query()
+                     ->where('user_id', $userId)
+                     ->where('revoked', false)
+                     ->get();
     }
 }
