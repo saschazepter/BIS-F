@@ -2,12 +2,10 @@
 
 namespace Tests\Feature\APIv1;
 
-use App\Models\Checkin;
 use App\Models\Trip;
 use App\Models\User;
 use App\Providers\AuthServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Passport\Passport;
 use Tests\ApiTestCase;
 
 class CheckinTest extends ApiTestCase
@@ -32,6 +30,11 @@ class CheckinTest extends ApiTestCase
                      ],
             headers: ['Authorization' => 'Bearer ' . $token->accessToken],
         );
-        $this->assertEquals(1, $response->json('data.status.client.id'));
+
+        //assert that client id is an uuid
+        $this->assertMatchesRegularExpression(
+            pattern: '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/',
+            string:  $response->json('data.status.client.id')
+        );
     }
 }

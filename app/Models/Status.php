@@ -35,7 +35,7 @@ class Status extends Model
         'visibility'       => StatusVisibility::class,
         'event_id'         => 'integer',
         'mastodon_post_id' => 'string',
-        'client_id'        => 'integer',
+        'client_id'        => 'string', // numeric (legacy) or uuid
         'moderation_notes' => 'string',
         'lock_visibility'  => 'boolean',
         'hide_body'        => 'boolean'
