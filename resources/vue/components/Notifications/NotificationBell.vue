@@ -1,28 +1,20 @@
 <script>
-import ModalComponent from "./ModalComponent.vue";
+import ModalComponent from "../ModalComponent.vue";
 import NotificationList from "./NotificationList.vue";
-import {useNotificationsStore} from "../stores/notifications";
+import {useNotificationsStore} from "../../stores/notifications";
 
 export default {
+  components: {ModalComponent, NotificationList},
+  props: {
+    link: {type: Boolean, default: false},
+    allowFetch: {type: Boolean, default: true}
+  },
   setup() {
     const state = useNotificationsStore();
-
     return {state};
   },
-  props: {
-    link: {
-      type: Boolean,
-      default: false
-    },
-    allowFetch: {
-      type: Boolean,
-      default: true
-    }
-  },
   data() {
-    return {
-      fetchInterval: null,
-    }
+    return {fetchInterval: null};
   },
   methods: {
     showModal() {
@@ -44,10 +36,6 @@ export default {
       clearInterval(this.fetchInterval);
     }
   },
-  components: {
-    ModalComponent,
-    NotificationList
-  },
   computed: {
     count() {
       return this.state.count < 0 ? 0 : this.state.count;
@@ -57,31 +45,49 @@ export default {
 </script>
 
 <template>
-  <button @click="showModal" class="btn btn-link btn-transparent text-white notifications-board-toggle"
-          :class="{'nav-link': link, 'navbar-toggler': !link}" type="button"
-          aria-expanded="false"
-          :aria-label="$t('notifications.show')">
-    <span class="notifications-bell fa-bell" :class="{'fas': !!count,  'far': !count}"></span>
-    <span class="notifications-pill badge rounded-pill badge-notification" v-show="count">
-              {{ count }}
-        </span>
+  <button
+      @click="showModal"
+      class="btn btn-link btn-transparent text-white notifications-board-toggle"
+      :class="{'nav-link': link, 'navbar-toggler': !link}"
+      type="button"
+      :aria-expanded="false"
+      :aria-label="$t('notifications.show')"
+  >
+    <span
+        class="notifications-bell fa-bell"
+        :class="{'fas': !!count, 'far': !count}"
+        aria-hidden="true"
+    ></span>
+
+    <span
+        class="notifications-pill badge rounded-pill badge-notification"
+        v-show="count"
+        aria-live="polite"
+    >
+      {{ count }}
+    </span>
   </button>
+
   <ModalComponent
       :title="$t('notifications.title')"
       ref="thisModal"
       dialogClass="modal-lg modal-dialog-scrollable"
       bodyClass="p-0"
-      :hide-footer="true">
+      :hide-footer="true"
+  >
     <template #body class="p-0">
       <NotificationList ref="notifications"/>
     </template>
+
     <template #header-extra>
       <button
           type="button"
           class="btn btn-sm btn-link py-0 px-1 fs-5 text-muted"
           @click="$refs.notifications.toggleAllRead"
           v-show="state.count"
-          :aria-label="$t('notifications.mark-all-read')">
+          :aria-label="$t('notifications.mark-all-read')"
+          :title="$t('notifications.mark-all-read')"
+      >
         <span aria-hidden="true"><i class="fa-solid fa-check-double"></i></span>
       </button>
     </template>
@@ -89,7 +95,7 @@ export default {
 </template>
 
 <style scoped lang="scss">
-@import "../../sass/variables";
+@import "../../../sass/variables";
 
 .modal-header {
   justify-content: initial;

@@ -3,7 +3,7 @@
  */
 import {Notyf} from "notyf";
 import {createApp} from "vue";
-import NotificationBell from "../vue/components/NotificationBell.vue";
+import NotificationBell from "../vue/components/Notifications/NotificationBell.vue";
 import ActiveJourneyMap from "../vue/components/ActiveJourneyMap.vue";
 import Stationboard from "../vue/components/Stationboard.vue";
 import StationAutocomplete from "../vue/components/StationAutocomplete/StationAutocomplete.vue";
