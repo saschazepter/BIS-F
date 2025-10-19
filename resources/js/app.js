@@ -21,6 +21,7 @@ import piniaPluginPersistedsState from 'pinia-plugin-persistedstate'
 import FriendCheckinSettings from "../vue/components/Settings/FriendCheckinSettings.vue";
 import WebhookSettings from "../vue/components/Settings/Webhooks.vue";
 import ProfileSettings from "../vue/components/Settings/ProfileSettings.vue";
+import Profile from "../vue/views/Profile.vue";
 import StatsDashboard from "../vue/components/Stats/StatsDashboard.vue";
 import Request from "../vue/components/Events/Request.vue";
 import ApiAlerts from "../vue/components/ApiAlerts.vue";
@@ -137,6 +138,14 @@ document.addEventListener("DOMContentLoaded", function () {
         app8.use(i18nVue, i18nOptions);
         app8.use(pinia);
         app8.mount("#settings-profile");
+    }
+
+    if (document.getElementById("vue-user-profile")) {
+        const app8 = createApp({});
+        app8.component("Profile", Profile);
+        app8.use(i18nVue, i18nOptions);
+        app8.use(pinia);
+        app8.mount("#vue-user-profile");
     }
 
     // All components that fully use the blade content slot should be mounted here.

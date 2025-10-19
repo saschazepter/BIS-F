@@ -78,14 +78,9 @@
                         </div>
                     </div>
 
-                    @foreach($statuses as $status)
-                        @include('includes.status')
-                    @endforeach
+                   TODO STATUS
                 @endif
             </div>
         </div>
     </div>
-
-    @include('includes.edit-modal')
-    @include('includes.delete-modal')
 @endsection
