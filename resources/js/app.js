@@ -28,6 +28,7 @@ import ApiAlerts from "../vue/components/ApiAlerts.vue";
 import Dashboard from "../vue/views/Dashboard.vue";
 import SingleStatus from "../vue/views/SingleStatus.vue";
 import ActiveJourneys from "../vue/views/ActiveJourneys.vue";
+import EventPage from "../vue/views/Event.vue";
 
 window.notyf = new Notyf({
     duration: 5000,
@@ -141,11 +142,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (document.getElementById("vue-user-profile")) {
-        const app8 = createApp({});
-        app8.component("Profile", Profile);
-        app8.use(i18nVue, i18nOptions);
-        app8.use(pinia);
-        app8.mount("#vue-user-profile");
+        const app9 = createApp({});
+        app9.component("Profile", Profile);
+        app9.use(i18nVue, i18nOptions);
+        app9.use(pinia);
+        app9.mount("#vue-user-profile");
+    }
+
+    if (document.getElementById("vue-event")) {
+        const app10 = createApp({});
+        app10.component("Event", EventPage);
+        app10.use(i18nVue, i18nOptions);
+        app10.use(pinia);
+        app10.mount("#vue-event");
     }
 
     // All components that fully use the blade content slot should be mounted here.
