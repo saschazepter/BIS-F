@@ -29,6 +29,7 @@ import Dashboard from "../vue/views/Dashboard.vue";
 import SingleStatus from "../vue/views/SingleStatus.vue";
 import ActiveJourneys from "../vue/views/ActiveJourneys.vue";
 import EventPage from "../vue/views/Event.vue";
+import StatsDaily from "../vue/views/Stats/Daily.vue";
 
 window.notyf = new Notyf({
     duration: 5000,
@@ -155,6 +156,14 @@ document.addEventListener("DOMContentLoaded", function () {
         app10.use(i18nVue, i18nOptions);
         app10.use(pinia);
         app10.mount("#vue-event");
+    }
+
+    if (document.getElementById("vue-stats-daily")) {
+        const app11 = createApp({});
+        app11.component("StatsDaily", StatsDaily);
+        app11.use(i18nVue, i18nOptions);
+        app11.use(pinia);
+        app11.mount("#vue-stats-daily");
     }
 
     // All components that fully use the blade content slot should be mounted here.
