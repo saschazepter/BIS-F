@@ -7,22 +7,6 @@ on:
   pull_request:
 
 jobs:
-  validate:
-    name: Validate Composer
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.5
-
-      - name: Validate composer.json and composer.lock
-        run: composer validate
-
   node-audit:
     name: Node.js Security Audit
     runs-on: ubuntu-latest
@@ -67,7 +51,7 @@ jobs:
           retention-days: 1
 
   install-dependencies:
-    name: Install Composer Dependencies
+    name: Install & Validate Composer Dependencies
     runs-on: ubuntu-latest
 
     steps:
@@ -79,6 +63,9 @@ jobs:
         with:
           php-version: 8.5
           extensions: mbstring, bcmath, ctype, fileinfo, json, openssl, pdo, tokenizer, xml, gd
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate
 
       - name: Get Composer cache directory
         id: composer-cache
