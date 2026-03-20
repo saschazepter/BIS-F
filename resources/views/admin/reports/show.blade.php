@@ -142,7 +142,7 @@
                             const status      = document.querySelector('#form-report-action select[name="status"]').value;
                             const description = document.querySelector('#form-report-action textarea[name="description"]').value;
 
-                            fetch('/api/v1/report/{{$report->id}}', {
+                            fetch('/api/v1/reports/{{$report->id}}', {
                                 method: 'PUT',
                                 headers: {
                                     'Content-Type': 'application/json',

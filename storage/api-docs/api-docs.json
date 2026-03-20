@@ -1677,13 +1677,13 @@
                 ]
             }
         },
-        "/report": {
+        "/reports": {
             "post": {
                 "tags": [
                     "Report"
                 ],
                 "summary": "Report a Status, Event or User to the admins.",
-                "operationId": "report",
+                "operationId": "createReport",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1692,7 +1692,8 @@
                                 "required": [
                                     "subjectType",
                                     "subjectId",
-                                    "reason"
+                                    "reason",
+                                    "description"
                                 ],
                                 "properties": {
                                     "subjectType": {
@@ -1721,8 +1722,7 @@
                                     },
                                     "description": {
                                         "type": "string",
-                                        "example": "The status is inappropriate because...",
-                                        "nullable": true
+                                        "example": "The status is inappropriate because..."
                                     }
                                 },
                                 "type": "object"

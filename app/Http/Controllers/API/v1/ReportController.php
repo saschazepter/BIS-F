@@ -17,14 +17,14 @@ use OpenApi\Attributes as OA;
 class ReportController extends Controller
 {
     #[OA\Post(
-        path: '/report',
-        operationId: 'report',
+        path: '/reports',
+        operationId: 'createReport',
         summary: 'Report a Status, Event or User to the admins.',
         security: [['passport' => []], ['token' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['subjectType', 'subjectId', 'reason'],
+                required: ['subjectType', 'subjectId', 'reason', 'description'],
                 properties: [
                     new OA\Property(
                         property: 'subjectType',
@@ -43,7 +43,6 @@ class ReportController extends Controller
                         property: 'description',
                         type: 'string',
                         example: 'The status is inappropriate because...',
-                        nullable: true,
                     ),
                 ],
             ),
@@ -61,7 +60,7 @@ class ReportController extends Controller
             'subjectType' => ['required_without:subject_type', new Enum(ReportableSubject::class)],
             'subjectId' => ['required_without:subject_id', 'integer', 'min:1'],
             'reason' => ['required', new Enum(ReportReason::class)],
-            'description' => ['nullable', 'string', 'min:10'],
+            'description' => ['required', 'string', 'min:10'],
         ]);
 
         new ReportRepository()->createReport(

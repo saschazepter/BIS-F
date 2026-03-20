@@ -86,7 +86,7 @@
             let id = this.getAttribute('data-id');
 
             if (confirm('Are you sure you want to close report #' + id + '?')) {
-                fetch('/api/v1/report/' + id, {
+                fetch('/api/v1/reports/' + id, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',

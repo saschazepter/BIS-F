@@ -4006,17 +4006,17 @@ export class Api<
         ...params,
       }),
   };
-  report = {
+  reports = {
     /**
      * No description
      *
      * @tags Report
-     * @name Report
+     * @name CreateReport
      * @summary Report a Status, Event or User to the admins.
-     * @request POST:/report
+     * @request POST:/reports
      * @secure
      */
-    report: (
+    createReport: (
       data: {
         /** @example "Status" */
         subjectType: "Event" | "Status" | "User";
@@ -4025,12 +4025,12 @@ export class Api<
         /** @example "inappropriate" */
         reason: "inappropriate" | "implausible" | "spam" | "illegal" | "other";
         /** @example "The status is inappropriate because..." */
-        description?: string | null;
+        description: string;
       },
       params: RequestParams = {},
     ) =>
       this.request<void, void>({
-        path: `/report`,
+        path: `/reports`,
         method: "POST",
         body: data,
         secure: true,
