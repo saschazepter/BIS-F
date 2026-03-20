@@ -80,7 +80,7 @@ class ReportController extends Controller
      *
      * @throws AuthorizationException
      */
-    public function update(Request $request, int $reportId): JsonResponse
+    public function update(Request $request, string $reportId): JsonResponse
     {
         $report = Report::findOrFail($reportId);
         $this->authorize('update', $report);

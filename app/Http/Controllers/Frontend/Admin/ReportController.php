@@ -17,7 +17,7 @@ class ReportController extends Controller
         ]);
     }
 
-    public function showReport(int $id): View
+    public function showReport(string $id): View
     {
         $report = Report::findOrFail($id);
         $this->authorize('view', $report);
