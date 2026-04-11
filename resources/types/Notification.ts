@@ -1,17 +1,3 @@
-export type Notification = {
-    id: string;
-    type: string;
-    leadFormatted: string;
-    lead: string;
-    noticeFormatted: string;
-    notice: string;
-    link: string;
-    data: StatusLikedNotification | any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    readAt: null | string;
-    createdAt: string;
-    createdAtForHumans: string;
-};
-
 export type StatusLikedNotification = {
     like: {
         id: number;
